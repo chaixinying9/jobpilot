@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>岗位详情 | JobPilot</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://code.iconify.design/3/3.1.1/iconify.min.js"></script>
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    body { font-family: 'Inter', sans-serif; background-color: #F9FAFB; }
+    .ai-gradient { background: linear-gradient(135deg, #2563EB 0%, #7C3AED 100%); }
+    .tag-active { background: #DBEAFE; color: #1D4ED8; border-color: #BFDBFE; }
+    .tag-inactive { background: #F3F4F6; color: #9CA3AF; border-color: #E5E7EB; }
+    .step-active { background: #2563EB; color: white; }
+    .step-done { background: #10B981; color: white; }
+    .step-pending { background: #E5E7EB; color: #9CA3AF; }
+</style>
+</head>
+<body class="flex h-screen overflow-hidden">
+<!-- 侧边导航栏 -->
+<aside class="w-64 bg-[#111827] text-gray-400 flex flex-col shrink-0">
+<div class="p-6 flex items-center gap-3">
+<div class="w-10 h-10 ai-gradient rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
+<span class="iconify text-white text-2xl" data-icon="solar:bolt-circle-bold-duotone"></span>
+</div>
+<span class="text-white font-bold text-xl tracking-tight">JobPilot</span>
+</div>
+<nav class="flex-1 px-4 py-4 space-y-2">
+<div class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4 px-2">主菜单</div>
+<a class="flex items-center gap-3 px-4 py-3 hover:text-white hover:bg-gray-800 rounded-lg transition-all" href="index.html">
+<span class="iconify text-xl" data-icon="solar:widget-5-bold-duotone"></span><span>仪表盘</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 hover:text-white hover:bg-gray-800 rounded-lg transition-all" href="resumes.html">
+<span class="iconify text-xl" data-icon="solar:document-add-bold-duotone"></span><span>简历管理</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-white rounded-lg transition-all" href="applications.html" style="background-color:rgba(37,99,235,0.1);border-right:4px solid #2563EB;color:#2563EB">
+<span class="iconify text-xl" data-icon="solar:ranking-bold-duotone"></span><span class="font-medium">投递管理</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 hover:text-white hover:bg-gray-800 rounded-lg transition-all" href="strategy.html">
+<span class="iconify text-xl" data-icon="solar:chart-square-bold-duotone"></span><span>策略复盘</span>
+<span class="ml-auto bg-blue-600 text-[10px] text-white px-1.5 py-0.5 rounded-full">Pro</span>
+</a>
+<div class="pt-8 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4 px-2">辅助工具</div>
+<a class="flex items-center gap-3 px-4 py-3 opacity-50 cursor-not-allowed" href="#">
+<span class="iconify text-xl" data-icon="solar:videocamera-record-bold-duotone"></span><span>模拟面试</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 opacity-50 cursor-not-allowed" href="#">
+<span class="iconify text-xl" data-icon="solar:settings-bold-duotone"></span><span>账户设置</span>
+</a>
+</nav>
+</aside>
+
+<!-- 主内容区 -->
+<main class="flex-1 flex flex-col min-w-0 overflow-hidden">
+<header class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-8 shrink-0">
+<div class="flex items-center gap-4">
+<a href="applications.html" class="flex items-center gap-1 text-sm text-gray-500 hover:text-blue-600 transition-colors">
+<span class="iconify text-lg" data-icon="solar:arrow-left-bold"></span> 返回
+</a>
+<span class="text-gray-300">|</span>
+<h1 class="text-lg font-semibold text-gray-800" id="jobTitleHeader">岗位详情</h1>
+</div>
+<div class="flex items-center gap-3">
+<button onclick="updateJobStatus()" class="px-4 py-1.5 bg-white border border-gray-200 rounded-xl text-xs font-medium text-gray-600 hover:border-blue-400 hover:text-blue-600 transition-all">
+<span class="iconify text-sm align-middle mr-1" data-icon="solar:refresh-bold"></span>更新状态
+</button>
+</div>
+</header>
+
+<div class="flex-1 overflow-y-auto p-8">
+<div class="max-w-[1100px] mx-auto">
+
+<!-- 岗位信息卡片 -->
+<div class="bg-white rounded-3xl border border-gray-100 shadow-sm p-8 mb-6">
+<div class="flex items-start justify-between mb-4">
+<div>
+<div class="flex items-center gap-3 mb-2">
+<h2 class="text-2xl font-bold text-gray-900" id="detailTitle">--</h2>
+<span id="detailStatusBadge" class="px-3 py-1 bg-gray-100 text-gray-600 text-xs font-bold rounded-full">--</span>
+</div>
+<p class="text-gray-500" id="detailCompany">-- · --</p>
+</div>
+<div class="flex gap-2" id="detailActions">
+<!-- 动态按钮 -->
+</div>
+</div>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+<div class="p-4 bg-gray-50 rounded-xl">
+<p class="text-xs text-gray-500 mb-1">工作地点</p>
+<p class="text-sm font-bold text-gray-800" id="detailLocation">--</p>
+</div>
+<div class="p-4 bg-gray-50 rounded-xl">
+<p class="text-xs text-gray-500 mb-1">薪资范围</p>
+<p class="text-sm font-bold text-gray-800" id="detailSalary">--</p>
+</div>
+<div class="p-4 bg-gray-50 rounded-xl">
+<p class="text-xs text-gray-500 mb-1">创建时间</p>
+<p class="text-sm font-bold text-gray-800" id="detailCreated">--</p>
+</div>
+<div class="p-4 bg-gray-50 rounded-xl">
+<p class="text-xs text-gray-500 mb-1">关联简历</p>
+<p class="text-sm font-bold text-gray-800" id="detailLinkedResume">--</p>
+</div>
+</div>
+
+<!-- JD 内容 -->
+<div class="mb-4">
+<h3 class="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
+<span class="iconify text-blue-500" data-icon="solar:document-text-bold-duotone"></span>
+岗位描述 (JD)
+</h3>
+<div id="detailJD" class="p-4 bg-gray-50 rounded-xl text-sm text-gray-700 leading-relaxed max-h-60 overflow-y-auto border border-gray-100">
+加载中...
+</div>
+</div>
+
+<!-- JD 关键词标签 -->
+<div id="jdKeywordsSection" class="hidden mb-4">
+<h3 class="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
+<span class="iconify text-purple-500" data-icon="solar:tag-bold-duotone"></span>
+JD 关键词标签
+</h3>
+<div id="jdKeywordsArea" class="flex flex-wrap gap-2"></div>
+</div>
+
+<!-- 面试提醒信息 -->
+<div id="interviewInfoSection" class="hidden p-4 bg-purple-50 rounded-xl border border-purple-100">
+<div class="flex items-center gap-2 mb-2">
+<span class="iconify text-purple-500" data-icon="solar:alarm-bold-duotone"></span>
+<span class="text-sm font-bold text-purple-700">面试提醒</span>
+</div>
+<p class="text-sm text-gray-700" id="interviewInfoText">--</p>
+</div>
+</div>
+
+<!-- AI 简历优化区块（仅未投递状态显示） -->
+<div id="optimizeSection" class="bg-white rounded-3xl border border-purple-100 shadow-sm overflow-hidden mb-6">
+<div class="ai-gradient p-5 text-white">
+<h3 class="font-bold text-lg flex items-center gap-2">
+<span class="iconify text-xl" data-icon="solar:magic-stick-bold-duotone"></span>
+针对该岗位优化简历
+</h3>
+<p class="text-white/70 text-xs mt-1">基于岗位 JD 关键词，针对性改写简历内容</p>
+</div>
+
+<!-- 步骤条 -->
+<div class="flex items-center justify-between px-6 py-4 bg-gray-50 border-b border-gray-100">
+<div class="flex items-center gap-1" id="optStepBar">
+<div class="opt-step w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold cursor-pointer step-active" onclick="optJumpTo(1)">1</div>
+<div class="w-10 h-0.5 bg-gray-300"></div>
+<div class="opt-step w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold cursor-pointer step-pending" onclick="optJumpTo(2)">2</div>
+<div class="w-10 h-0.5 bg-gray-300"></div>
+<div class="opt-step w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold cursor-pointer step-pending" onclick="optJumpTo(3)">3</div>
+</div>
+</div>
+
+<!-- Step 1: 选择简历 -->
+<div id="optStep1" class="p-6 space-y-4">
+<p class="text-sm font-bold text-gray-700 flex items-center gap-2">
+<span class="iconify text-blue-500" data-icon="solar:document-add-bold-duotone"></span>
+选择要优化的简历
+</p>
+<div id="resumeSelectArea" class="space-y-2 max-h-60 overflow-y-auto border border-gray-100 rounded-xl p-2">
+<div class="text-center py-6 text-gray-400 text-sm">加载中...</div>
+</div>
+<div class="flex items-center gap-2 mt-2">
+<button onclick="showNewResumeModal()" class="text-xs text-blue-600 hover:underline flex items-center gap-1">
+<span class="iconify" data-icon="solar:add-circle-bold"></span>上传新简历
+</button>
+</div>
+<div id="optStep1Error" class="hidden text-xs text-red-500 text-center py-2"></div>
+<button onclick="goToOptStep2()" class="w-full py-3 ai-gradient text-white rounded-xl text-sm font-bold hover:opacity-90 flex items-center justify-center gap-2">
+下一步 <span class="iconify text-lg" data-icon="solar:arrow-right-bold"></span>
+</button>
+</div>
+
+<!-- Step 2: 确认标签 & 优化 -->
+<div id="optStep2" class="p-6 space-y-4 hidden">
+<button onclick="optJumpTo(1)" class="flex items-center gap-1 text-sm text-gray-500 hover:text-blue-600 mb-2">
+<span class="iconify text-sm" data-icon="solar:arrow-left-bold"></span> 返回
+</button>
+
+<div id="optSelectedResumeInfo" class="p-3 bg-blue-50 rounded-xl">
+<p class="text-xs text-gray-500">已选简历</p>
+<p class="text-sm font-bold text-blue-700" id="optSelectedResumeName">--</p>
+</div>
+
+<div class="p-4 bg-purple-50 rounded-xl border border-purple-100">
+<div class="flex items-center justify-between mb-3">
+<span class="text-sm font-bold text-purple-700 flex items-center gap-2">
+<span class="iconify text-purple-500" data-icon="solar:tag-bold-duotone"></span>
+已确认的 JD 关键词
+</span>
+<button onclick="showTagReview()" class="text-xs text-purple-600 hover:underline">重新编辑</button>
+</div>
+<div id="optTagsArea" class="flex flex-wrap gap-2 mb-2"></div>
+<p class="text-xs text-gray-500">点击标签可取消激活</p>
+</div>
+
+<div id="optLoading" class="hidden text-center py-6">
+<span class="iconify text-4xl animate-spin text-blue-500" data-icon="solar:loader-bold"></span>
+<p class="text-sm text-gray-500 mt-3">AI 正在生成优化建议...</p>
+</div>
+
+<div id="optResults" class="hidden space-y-3"></div>
+
+<button onclick="confirmOptChanges()" id="optConfirmBtn" class="w-full py-3 ai-gradient text-white rounded-xl text-sm font-bold hover:opacity-90 hidden">
+确认并保存简历
+</button>
+</div>
+
+<!-- Step 3: 完成 -->
+<div id="optStep3" class="p-6 space-y-4 hidden">
+<div class="text-center py-4">
+<span class="iconify text-5xl text-emerald-500" data-icon="solar:check-circle-bold-duotone"></span>
+<p class="text-lg font-bold text-gray-800 mt-3">简历已保存</p>
+<p class="text-sm text-gray-500 mt-1">针对该岗位的优化版本已生成</p>
+</div>
+<div class="flex gap-3">
+<button onclick="optExport('pdf')" class="flex-1 py-3 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-colors">
+<span class="iconify text-lg" data-icon="solar:file-corrupted-bold-duotone"></span> 导出 PDF
+</button>
+<button onclick="optExport('word')" class="flex-1 py-3 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-colors">
+<span class="iconify text-lg" data-icon="solar:document-bold-duotone"></span> 导出 Word
+</button>
+</div>
+<button onclick="resetOptWorkflow()" class="w-full py-3 border border-gray-200 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-50">
+开始新的优化
+</button>
+</div>
+</div>
+
+<!-- 关联简历区块（非未投递状态） -->
+<div id="linkResumeSection" class="bg-white rounded-3xl border border-gray-100 shadow-sm p-8 mb-6 hidden">
+<h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+<span class="iconify text-blue-500" data-icon="solar:link-bold-duotone"></span>
+关联简历
+</h3>
+<div class="flex items-center gap-4">
+<select id="resumeLinkSelect" class="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 ring-blue-500/20">
+<option value="">-- 选择简历 --</option>
+</select>
+<button onclick="linkResume()" class="px-6 py-2.5 ai-gradient text-white rounded-xl text-sm font-bold">关联</button>
+</div>
+<div id="currentLinkedInfo" class="mt-4 p-4 bg-gray-50 rounded-xl hidden">
+<p class="text-xs text-gray-500">当前关联</p>
+<p class="text-sm font-bold text-gray-800 mt-1" id="currentLinkedName">--</p>
+</div>
+</div>
+
+<!-- 面试提醒区块（仅面试中状态） -->
+<div id="reminderSection" class="bg-white rounded-3xl border border-purple-100 shadow-sm p-8 mb-6 hidden">
+<h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+<span class="iconify text-purple-500" data-icon="solar:alarm-bold-duotone"></span>
+面试提醒
+</h3>
+<div class="grid grid-cols-2 gap-4">
+<div>
+<label class="block text-sm font-medium text-gray-700 mb-1.5">面试日期</label>
+<input id="reminderDate" type="date" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 ring-purple-500/20"/>
+</div>
+<div>
+<label class="block text-sm font-medium text-gray-700 mb-1.5">面试时间</label>
+<input id="reminderTime" type="time" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 ring-purple-500/20"/>
+</div>
+</div>
+<div class="mt-3">
+<label class="block text-sm font-medium text-gray-700 mb-1.5">备注</label>
+<input id="reminderNote" class="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 ring-purple-500/20" placeholder="例如：技术面，重点考察架构设计"/>
+</div>
+<div class="mt-4 p-3 bg-purple-50 rounded-xl border border-purple-100">
+<p class="text-xs text-purple-700">💡 提醒将在面试前 <span class="font-bold">24 小时</span> 和 <span class="font-bold">1 小时</span> 发送通知</p>
+</div>
+<button onclick="saveReminder()" class="mt-4 px-6 py-2.5 ai-gradient text-white rounded-xl text-sm font-bold">保存提醒</button>
+</div>
+
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+
+<!-- 上传简历弹窗（岗位详情页内） -->
+<div id="uploadResumeModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+<div class="bg-white rounded-3xl p-8 w-[500px]">
+<div class="flex justify-between items-center mb-6">
+<h3 class="text-lg font-bold text-gray-800">上传简历</h3>
+<button onclick="hideUploadModal()" class="p-2 hover:bg-gray-100 rounded-xl">
+<span class="iconify text-xl text-gray-400" data-icon="solar:close-circle-bold"></span>
+</button>
+</div>
+<textarea id="uploadResumeText" class="w-full h-32 p-4 border border-gray-200 rounded-xl text-sm resize-none outline-none focus:ring-2 ring-blue-500/20" placeholder="粘贴简历文本内容..."></textarea>
+<div class="flex gap-3 mt-4">
+<button onclick="hideUploadModal()" class="flex-1 py-2.5 border border-gray-200 rounded-xl text-gray-600 font-medium hover:bg-gray-50">取消</button>
+<button onclick="saveInlineResume()" class="flex-1 py-2.5 ai-gradient text-white rounded-xl font-bold">保存并选择</button>
+</div>
+</div>
+</div>
+
+<!-- 标签重新编辑弹窗 -->
+<div id="tagReviewModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+<div class="bg-white rounded-3xl p-8 w-[600px] max-h-[70vh] overflow-y-auto">
+<div class="flex justify-between items-center mb-4">
+<h3 class="text-lg font-bold text-gray-800">编辑 JD 关键词标签</h3>
+<button onclick="hideTagReview()" class="p-2 hover:bg-gray-100 rounded-xl">
+<span class="iconify text-xl text-gray-400" data-icon="solar:close-circle-bold"></span>
+</button>
+</div>
+<div id="tagReviewArea" class="flex flex-wrap gap-2 mb-4"></div>
+<button onclick="hideTagReview()" class="w-full py-2.5 ai-gradient text-white rounded-xl font-bold">确认</button>
+</div>
+</div>
+
+<!-- 状态更新弹窗 -->
+<div id="statusModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+<div class="bg-white rounded-3xl p-8 w-[400px]">
+<div class="flex justify-between items-center mb-6">
+<h3 class="text-lg font-bold text-gray-800">更新状态</h3>
+<button onclick="hideStatusModal()" class="p-2 hover:bg-gray-100 rounded-xl">
+<span class="iconify text-xl text-gray-400" data-icon="solar:close-circle-bold"></span>
+</button>
+</div>
+<div class="space-y-2" id="statusOptions"></div>
+</div>
+</div>
+
+<script>
+const params = new URLSearchParams(window.location.search);
+const jobId = params.get('id');
+let currentJob = null;
+let allResumes = [];
+let selectedOptResumeId = null;
+let selectedOptResumeContent = '';
+let currentOptTags = [];
+let optSuggestions = [];
+
+async function loadJob() {
+    if (!jobId) { alert('缺少岗位 ID'); window.location.href = 'applications.html'; return; }
+    try {
+        const [jobsRes, resumesRes] = await Promise.all([fetch('/api/jobs'), fetch('/api/resumes')]);
+        const jobs = await jobsRes.json();
+        allResumes = await resumesRes.json();
+        currentJob = jobs.find(j => j.id === jobId);
+        if (!currentJob) { alert('岗位不存在'); window.location.href = 'applications.html'; return; }
+        renderJobDetail();
+    } catch (e) { alert('加载失败'); }
+}
+
+function renderJobDetail() {
+    const j = currentJob;
+    document.getElementById('jobTitleHeader').textContent = j.title;
+    document.getElementById('detailTitle').textContent = j.title;
+    document.getElementById('detailCompany').textContent = `${j.company} · ${j.location || '地点未知'}${j.salary ? ' · ' + j.salary : ''}`;
+
+    const statusMap = {
+        pending: { label: '未投递', bg: 'bg-gray-100', text: 'text-gray-600' },
+        applied: { label: '投递中', bg: 'bg-amber-100', text: 'text-amber-700' },
+        interviewing: { label: '面试中', bg: 'bg-purple-100', text: 'text-purple-700' },
+        offer: { label: 'Offer', bg: 'bg-emerald-100', text: 'text-emerald-700' },
+        rejected: { label: '已拒绝', bg: 'bg-red-100', text: 'text-red-700' }
+    };
+    const s = statusMap[j.status] || statusMap.pending;
+    const badge = document.getElementById('detailStatusBadge');
+    badge.textContent = s.label;
+    badge.className = `px-3 py-1 ${s.bg} ${s.text} text-xs font-bold rounded-full`;
+
+    document.getElementById('detailLocation').textContent = j.location || '--';
+    document.getElementById('detailSalary').textContent = j.salary || '--';
+    document.getElementById('detailCreated').textContent = j.createdAt ? new Date(j.createdAt).toLocaleDateString() : '--';
+    document.getElementById('detailJD').textContent = j.jdText || '暂无 JD 内容';
+
+    // JD keywords
+    if (j.jdKeywords && j.jdKeywords.length > 0) {
+        currentOptTags = j.jdKeywords;
+        document.getElementById('jdKeywordsSection').classList.remove('hidden');
+        document.getElementById('jdKeywordsArea').innerHTML = j.jdKeywords.map(t => `<span class="px-2.5 py-1 bg-blue-50 text-blue-600 text-xs rounded-full border border-blue-100">${t.name}</span>`).join('');
+    } else if (j.jdText) {
+        // Try to parse JD keywords
+        parseJDForJob();
+    }
+
+    // Interview info
+    if (j.status === 'interviewing') {
+        document.getElementById('interviewInfoSection').classList.remove('hidden');
+        document.getElementById('interviewInfoText').textContent = `${j.interviewDate || ''} ${j.interviewTime || ''} ${j.note || ''}`.trim();
+    }
+
+    // Linked resume
+    if (j.linkedResumeId) {
+        const r = allResumes.find(r => r.id === j.linkedResumeId);
+        document.getElementById('detailLinkedResume').textContent = r ? r.name : j.linkedResumeId;
+    } else {
+        document.getElementById('detailLinkedResume').textContent = '--';
+    }
+
+    // Show/hide sections based on status
+    document.getElementById('optimizeSection').classList.toggle('hidden', j.status !== 'pending');
+    document.getElementById('linkResumeSection').classList.toggle('hidden', j.status === 'pending');
+    document.getElementById('reminderSection').classList.toggle('hidden', j.status !== 'interviewing');
+
+    if (j.status === 'interviewing') {
+        document.getElementById('reminderDate').value = j.interviewDate || '';
+        document.getElementById('reminderTime').value = j.interviewTime || '';
+        document.getElementById('reminderNote').value = j.note || '';
+    }
+
+    // Update resume link select
+    if (j.status !== 'pending') {
+        const select = document.getElementById('resumeLinkSelect');
+        select.innerHTML = '<option value="">-- 选择简历 --</option>' + allResumes.map(r => `<option value="${r.id}">${r.name}${r.score?' (AI:'+r.score+')':''}</option>`).join('');
+        if (j.linkedResumeId) select.value = j.linkedResumeId;
+        if (j.linkedResumeId) {
+            const r = allResumes.find(r => r.id === j.linkedResumeId);
+            document.getElementById('currentLinkedInfo').classList.remove('hidden');
+            document.getElementById('currentLinkedName').textContent = r ? r.name : '--';
+        }
+    }
+}
+
+async function parseJDForJob() {
+    if (!currentJob.jdText) return;
+    try {
+        const res = await fetch('/api/ai/parse-jd', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ jd: currentJob.jdText })
+        });
+        const data = await res.json();
+        currentOptTags = data.tags || [];
+        document.getElementById('jdKeywordsSection').classList.remove('hidden');
+        document.getElementById('jdKeywordsArea').innerHTML = currentOptTags.map(t => `<span class="px-2.5 py-1 bg-blue-50 text-blue-600 text-xs rounded-full border border-blue-100">${t.name}</span>`).join('');
+    } catch (e) {}
+}
+
+// Status update
+function updateJobStatus() {
+    const modal = document.getElementById('statusModal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    const statusMap = {
+        pending: { label: '未投递', bg: 'bg-gray-100', text: 'text-gray-600' },
+        applied: { label: '投递中', bg: 'bg-amber-100', text: 'text-amber-700' },
+        interviewing: { label: '面试中', bg: 'bg-purple-100', text: 'text-purple-700' },
+        offer: { label: 'Offer', bg: 'bg-emerald-100', text: 'text-emerald-700' },
+        rejected: { label: '已拒绝', bg: 'bg-red-100', text: 'text-red-700' }
+    };
+    document.getElementById('statusOptions').innerHTML = Object.entries(statusMap).map(([k, v]) => `<button onclick="setJobStatus('${k}')" class="w-full p-4 ${currentJob.status===k?'border-blue-500 bg-blue-50':'border-gray-200 hover:bg-gray-50'} border-2 rounded-xl text-left transition-all">
+    <span class="px-2 py-0.5 ${v.bg} ${v.text} text-xs font-bold rounded">${v.label}</span></button>`).join('');
+}
+
+function hideStatusModal() {
+    document.getElementById('statusModal').classList.add('hidden');
+    document.getElementById('statusModal').classList.remove('flex');
+}
+
+async function setJobStatus(status) {
+    hideStatusModal();
+    await fetch(`/api/jobs/${jobId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status })
+    });
+    currentJob.status = status;
+    renderJobDetail();
+}
+
+// Resume optimization workflow
+function optJumpTo(n) {
+    ['optStep1','optStep2','optStep3'].forEach((id, i) => {
+        document.getElementById(id).classList.toggle('hidden', i+1 !== n);
+    });
+    document.querySelectorAll('.opt-step').forEach((btn, i) => {
+        if (i+1 < n) btn.className = 'opt-step w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold cursor-pointer step-done';
+        else if (i+1 === n) btn.className = 'opt-step w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold cursor-pointer step-active';
+        else btn.className = 'opt-step w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold cursor-pointer step-pending';
+    });
+}
+
+function renderOptResumeList() {
+    const area = document.getElementById('resumeSelectArea');
+    if (allResumes.length === 0) {
+        area.innerHTML = '<div class="text-center py-6 text-gray-400 text-sm">暂无简历，请先在简历管理页上传</div>';
+        return;
+    }
+    area.innerHTML = allResumes.map(r => `<div class="flex items-center gap-3 p-3 rounded-xl cursor-pointer hover:bg-blue-50 transition-all ${selectedOptResumeId===r.id?'bg-blue-50 border border-blue-200':''}" onclick="selectOptResume('${r.id}')">
+    <div class="w-8 h-10 bg-gray-100 rounded flex items-center justify-center"><span class="iconify text-gray-400" data-icon="solar:document-text-bold-duotone"></span></div>
+    <div class="flex-1 min-w-0">
+    <p class="text-sm font-bold text-gray-800 truncate">${r.name}</p>
+    <p class="text-xs text-gray-400">${r.content?'文本':'文件'}${r.score?' · AI:'+r.score:''}</p>
+    </div>
+    ${selectedOptResumeId===r.id?'<span class="iconify text-blue-500" data-icon="solar:check-circle-bold"></span>':''}</div>`).join('');
+}
+
+function selectOptResume(id) {
+    selectedOptResumeId = id;
+    const r = allResumes.find(res => res.id === id);
+    selectedOptResumeContent = r ? (r.content || '') : '';
+    document.getElementById('optSelectedResumeName').textContent = r ? r.name : '--';
+    renderOptResumeList();
+    document.getElementById('optStep1Error').classList.add('hidden');
+}
+
+function showNewResumeModal() {
+    document.getElementById('uploadResumeModal').classList.remove('hidden');
+    document.getElementById('uploadResumeModal').classList.add('flex');
+    document.getElementById('uploadResumeText').value = '';
+}
+
+function hideUploadModal() {
+    document.getElementById('uploadResumeModal').classList.add('hidden');
+    document.getElementById('uploadResumeModal').classList.remove('flex');
+}
+
+async function saveInlineResume() {
+    const text = document.getElementById('uploadResumeText').value.trim();
+    if (!text) { alert('请输入简历内容'); return; }
+    const res = await fetch('/api/resumes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: '新简历_' + new Date().toLocaleTimeString(), content: text, type: 'general', isPrimary: false, versions: [] })
+    });
+    const newR = await res.json();
+    allResumes.push(newR);
+    selectedOptResumeId = newR.id;
+    selectedOptResumeContent = text;
+    document.getElementById('optSelectedResumeName').textContent = newR.name;
+    renderOptResumeList();
+    hideUploadModal();
+}
+
+async function goToOptStep2() {
+    if (!selectedOptResumeId) {
+        document.getElementById('optStep1Error').textContent = '请先选择简历';
+        document.getElementById('optStep1Error').classList.remove('hidden');
+        return;
+    }
+    document.getElementById('optStep1Error').classList.add('hidden');
+    optJumpTo(2);
+    renderOptTags();
+    // Trigger optimization
+    document.getElementById('optLoading').classList.remove('hidden');
+    document.getElementById('optResults').classList.add('hidden');
+    document.getElementById('optConfirmBtn').classList.add('hidden');
+
+    try {
+        const res = await fetch('/api/ai/optimize-resume', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                resumeContent: selectedOptResumeContent,
+                jdKeywords: currentOptTags,
+                optimizeType: 'targeted'
+            })
+        });
+        const data = await res.json();
+        optSuggestions = data.suggestions || [];
+        renderOptResults();
+    } catch (e) { alert('优化失败'); }
+    document.getElementById('optLoading').classList.add('hidden');
+    document.getElementById('optResults').classList.remove('hidden');
+    document.getElementById('optConfirmBtn').classList.remove('hidden');
+}
+
+function renderOptTags() {
+    const area = document.getElementById('optTagsArea');
+    area.innerHTML = currentOptTags.map(t => `<span class="px-2.5 py-1 bg-blue-50 text-blue-600 text-xs rounded-full border border-blue-100 cursor-pointer hover:bg-gray-100 transition-all" onclick="this.classList.toggle('tag-active');this.classList.toggle('tag-inactive');">${t.name}</span>`).join('');
+}
+
+function showTagReview() {
+    const modal = document.getElementById('tagReviewModal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    const area = document.getElementById('tagReviewArea');
+    area.innerHTML = currentOptTags.map((t, i) => `<span class="px-2.5 py-1 bg-blue-50 text-blue-600 text-xs rounded-full border border-blue-100 cursor-pointer hover:bg-gray-100 transition-all" onclick="toggleTagInReview(${i}, this)">${t.name}</span>`).join('');
+}
+
+function toggleTagInReview(i, el) {
+    el.classList.toggle('bg-blue-50','text-blue-600','border-blue-100');
+    el.classList.toggle('bg-gray-100','text-gray-400','border-gray-200');
+    currentOptTags[i].active = !currentOptTags[i].active;
+}
+
+function hideTagReview() {
+    document.getElementById('tagReviewModal').classList.add('hidden');
+    document.getElementById('tagReviewModal').classList.remove('flex');
+    renderOptTags();
+}
+
+function renderOptResults() {
+    const area = document.getElementById('optResults');
+    const origSentences = selectedOptResumeContent.split(/[。\n]/).filter(s => s.trim());
+
+    area.innerHTML = `<div class="grid grid-cols-2 gap-3 mb-3">
+    <div class="bg-gray-50 rounded-xl p-3"><p class="text-xs font-bold text-gray-500 mb-2">原文</p><div class="space-y-1 max-h-48 overflow-y-auto">${origSentences.map(s => `<p class="text-sm text-gray-600">${s}</p>`).join('')}</div></div>
+    <div class="bg-blue-50 rounded-xl p-3"><p class="text-xs font-bold text-blue-600 mb-2">优化后</p><div class="space-y-1 max-h-48 overflow-y-auto">${optSuggestions.map(s => `<p class="text-sm text-gray-800 font-medium">${s.rewritten}</p>`).join('')}</div></div>
+    </div>` +
+    optSuggestions.map(s => `<div class="p-3 rounded-xl border ${s.confidence>=0.9?'border-emerald-200 bg-emerald-50/50':s.confidence>=0.7?'border-blue-200 bg-blue-50/50':'border-amber-200 bg-amber-50/50'}">
+    <div class="flex justify-between items-start mb-1">
+    <div class="flex items-center gap-2">
+    <span class="text-xs font-bold ${s.confidence>=0.9?'text-emerald-600':s.confidence>=0.7?'text-blue-600':'text-amber-600'}">${Math.round(s.confidence*100)}%</span>
+    ${s.warning?'<span class="text-xs text-red-500">⚠️ '+s.warning+'</span>':''}
+    </div>
+    <label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" class="w-4 h-4 rounded" data-sid="${s.id}" checked><span class="text-xs">采纳</span></label>
+    </div>
+    <p class="text-xs text-gray-400 line-through mb-1">${s.original}</p>
+    <p class="text-sm font-medium text-gray-800 ${s.confidence>=0.9?'underline':''}">${s.rewritten}</p>
+    <p class="text-xs text-gray-400 mt-1">📝 ${s.reason}</p></div>`).join('');
+}
+
+async function confirmOptChanges() {
+    const accepted = optSuggestions.filter(s => {
+        const cb = document.querySelector(`[data-sid="${s.id}"]`);
+        return cb && cb.checked;
+    });
+
+    let finalContent = selectedOptResumeContent;
+    accepted.forEach(s => { finalContent = finalContent.split(s.original).join(s.rewritten); });
+
+    const resumeData = {
+        name: `针对_${currentJob.title}_版`,
+        type: 'targeted',
+        content: finalContent,
+        linkedJobId: jobId,
+        isPrimary: false,
+        score: Math.floor(Math.random() * 10) + 85,
+        versions: [{ version: 1, date: new Date().toISOString(), changes: `针对「${currentJob.title}」岗位优化`, suggestions: optSuggestions }]
+    };
+
+    try {
+        const res = await fetch('/api/resumes', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(resumeData)
+        });
+        const newR = await res.json();
+        allResumes.push(newR);
+
+        // Link job to this resume
+        await fetch(`/api/jobs/${jobId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ linkedResumeId: newR.id, status: 'applied' })
+        });
+        currentJob.linkedResumeId = newR.id;
+        currentJob.status = 'applied';
+
+        optJumpTo(3);
+        renderJobDetail();
+    } catch (e) { alert('保存失败'); }
+}
+
+function optExport(fmt) {
+    const accepted = optSuggestions.filter(s => {
+        const cb = document.querySelector(`[data-sid="${s.id}"]`);
+        return cb && cb.checked;
+    });
+    let content = selectedOptResumeContent;
+    accepted.forEach(s => { content = content.split(s.original).join(s.rewritten); });
+
+    if (fmt === 'pdf') {
+        const html = `<html><head><meta charset="utf-8"/><style>body{font-family:SimSun,serif;padding:40px;line-height:1.8;font-size:13px}h1{font-size:20px;margin-bottom:8px}h2{font-size:15px;margin-top:16px;color:#333;border-bottom:1px solid #ddd;padding-bottom:4px}p{margin:6px 0}</style></head><body><h1>针对「${currentJob.title}」优化版简历</h1>${content.split('\n').map(l=>l.trim()?'<p>'+l+'</p>':'').join('')}</body></html>`;
+        const w = window.open('', '_blank');
+        w.document.write(html);
+        w.document.close();
+        w.print();
+    } else {
+        const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `针对${currentJob.title}优化版简历.txt`;
+        a.click();
+    }
+}
+
+function resetOptWorkflow() {
+    optJumpTo(1);
+    selectedOptResumeId = null;
+    selectedOptResumeContent = '';
+    optSuggestions = [];
+}
+
+// Link resume
+async function linkResume() {
+    const resumeId = document.getElementById('resumeLinkSelect').value;
+    if (!resumeId) { alert('请选择简历'); return; }
+    await fetch(`/api/jobs/${jobId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ linkedResumeId: resumeId })
+    });
+    currentJob.linkedResumeId = resumeId;
+    const r = allResumes.find(res => res.id === resumeId);
+    document.getElementById('currentLinkedInfo').classList.remove('hidden');
+    document.getElementById('currentLinkedName').textContent = r ? r.name : '--';
+    alert('关联成功');
+}
+
+// Save reminder
+async function saveReminder() {
+    const date = document.getElementById('reminderDate').value;
+    const time = document.getElementById('reminderTime').value;
+    const note = document.getElementById('reminderNote').value;
+    await fetch(`/api/jobs/${jobId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ interviewDate: date, interviewTime: time, note })
+    });
+    currentJob.interviewDate = date;
+    currentJob.interviewTime = time;
+    currentJob.note = note;
+    renderJobDetail();
+    alert('提醒已保存');
+}
+
+// Init
+renderOptResumeList();
+loadJob();
+</script>
+</body>
+</html>

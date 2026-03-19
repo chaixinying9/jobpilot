@@ -1,0 +1,22 @@
+{
+  "name": "jobpilot",
+  "version": "1.0.0",
+  "description": "AI-driven job-seeking efficiency tool",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "docx-preview": "^0.3.7",
+    "docxtemplater": "^3.68.3",
+    "express": "^4.18.2",
+    "html2pdf.js": "^0.14.0",
+    "mammoth": "^1.12.0",
+    "multer": "^1.4.5-lts.1",
+    "pdf-parse": "^2.4.5",
+    "pdfjs-dist": "^5.5.207",
+    "pizzip": "^3.2.0",
+    "puppeteer": "^24.39.1"
+  }
+}
