@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>投递管理 | JobPilot</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://code.iconify.design/3/3.1.1/iconify.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    body { font-family: 'Inter', sans-serif; background-color: #F9FAFB; }
+    .ai-gradient { background: linear-gradient(135deg, #2563EB 0%, #7C3AED 100%); }
+    .sidebar-item-active { background-color: rgba(37,99,235,0.1); border-right: 4px solid #2563EB; color: #2563EB; }
+    .drop-zone { border: 2px dashed #CBD5E1; transition: all 0.2s; }
+    .drop-zone.dragover { border-color: #2563EB; background: #EFF6FF; }
+</style>
+</head>
+<body class="flex h-screen overflow-hidden">
+<!-- 侧边导航栏 -->
+<aside class="w-64 bg-[#111827] text-gray-400 flex flex-col shrink-0">
+<div class="p-6 flex items-center gap-3">
+<div class="w-10 h-10 ai-gradient rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
+<span class="iconify text-white text-2xl" data-icon="solar:bolt-circle-bold-duotone"></span>
+</div>
+<span class="text-white font-bold text-xl tracking-tight">JobPilot</span>
+</div>
+<nav class="flex-1 px-4 py-4 space-y-2">
+<div class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4 px-2">主菜单</div>
+<a class="flex items-center gap-3 px-4 py-3 hover:text-white hover:bg-gray-800 rounded-lg transition-all" href="index.html">
+<span class="iconify text-xl" data-icon="solar:widget-5-bold-duotone"></span><span>仪表盘</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 hover:text-white hover:bg-gray-800 rounded-lg transition-all" href="resumes.html">
+<span class="iconify text-xl" data-icon="solar:document-add-bold-duotone"></span><span>简历管理</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-white sidebar-item-active rounded-lg transition-all" href="applications.html">
+<span class="iconify text-xl" data-icon="solar:ranking-bold-duotone"></span><span class="font-medium">投递管理</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 hover:text-white hover:bg-gray-800 rounded-lg transition-all" href="strategy.html">
+<span class="iconify text-xl" data-icon="solar:chart-square-bold-duotone"></span><span>策略复盘</span>
+<span class="ml-auto bg-blue-600 text-[10px] text-white px-1.5 py-0.5 rounded-full">Pro</span>
+</a>
+<div class="pt-8 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4 px-2">辅助工具</div>
+<a class="flex items-center gap-3 px-4 py-3 opacity-50 cursor-not-allowed" href="#">
+<span class="iconify text-xl" data-icon="solar:videocamera-record-bold-duotone"></span><span>模拟面试</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 opacity-50 cursor-not-allowed" href="#">
+<span class="iconify text-xl" data-icon="solar:settings-bold-duotone"></span><span>账户设置</span>
+</a>
+</nav>
+</aside>
+
+<!-- 主内容区 -->
+<main class="flex-1 flex flex-col min-w-0 overflow-hidden">
+<header class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-8 shrink-0">
+  <div class="flex items-center gap-4">
+    <h1 class="text-lg font-semibold text-gray-800">投递管理</h1>
+    <span class="text-sm text-gray-400">|</span>
+    <span class="text-sm text-gray-500">创建岗位 · 关联简历 · 设置提醒</span>
+  </div>
+  <div class="flex items-center gap-4">
+    <div class="relative flex items-center bg-gray-100 rounded-xl px-3 py-1.5 focus-within:ring-2 ring-blue-500/20">
+      <span class="iconify text-gray-400" data-icon="solar:magnifer-linear"></span>
+      <input id="searchInput" class="bg-transparent border-none outline-none text-sm ml-2 w-56 placeholder-gray-400 text-gray-600" placeholder="搜索岗位或公司..." type="text"/>
+    </div>
+    <button onclick="showCreateModal()" class="ai-gradient text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:opacity-90 transition-opacity">
+      <span class="iconify text-lg" data-icon="solar:add-circle-bold"></span>
+      新建岗位
+    </button>
+    <div class="relative group pl-4 border-l border-gray-200">
+      <div id="navUser" class="flex items-center gap-2 cursor-pointer">
+        <span id="navUsername" class="text-sm font-medium text-gray-700">加载中</span>
+        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+      </div>
+      <div id="userMenu" class="hidden absolute right-0 top-full mt-2 w-40 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
+        <div id="menuLogout" class="hidden px-4 py-2 text-sm text-red-600 cursor-pointer hover:bg-red-50 rounded-lg mx-1" onclick="logout()">退出登录</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="flex-1 overflow-y-auto p-8">
+
+<!-- 顶部统计卡片 -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-5 mb-8">
+<div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+<div class="flex items-center justify-between">
+<div><p class="text-xs text-gray-500">本月投递</p><p class="text-2xl font-bold text-gray-900 mt-1" id="statMonthly">0 <span class="text-base font-normal text-gray-400">份</span></p></div>
+<div class="p-3 bg-blue-50 rounded-xl"><span class="iconify text-xl text-blue-500" data-icon="solar:send-square-bold-duotone"></span></div>
+</div></div>
+<div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+<div class="flex items-center justify-between">
+<div><p class="text-xs text-gray-500">面试中</p><p class="text-2xl font-bold text-gray-900 mt-1" id="statInterviewing">0 <span class="text-base font-normal text-gray-400">个</span></p></div>
+<div class="p-3 bg-purple-50 rounded-xl"><span class="iconify text-xl text-purple-500" data-icon="solar:users-group-rounded-bold-duotone"></span></div>
+</div></div>
+<div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+<div class="flex items-center justify-between">
+<div><p class="text-xs text-gray-500">Offer</p><p class="text-2xl font-bold text-gray-900 mt-1" id="statOffer">0 <span class="text-base font-normal text-gray-400">个</span></p></div>
+<div class="p-3 bg-emerald-50 rounded-xl"><span class="iconify text-xl text-emerald-500" data-icon="solar:cup-star-bold-duotone"></span></div>
+</div></div>
+<div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+<div class="flex items-center justify-between">
+<div><p class="text-xs text-gray-500">简历→面试</p><p class="text-2xl font-bold text-gray-900 mt-1" id="statRate">-- <span class="text-base font-normal text-gray-400">%</span></p></div>
+<div class="p-3 bg-amber-50 rounded-xl"><span class="iconify text-xl text-amber-500" data-icon="solar:chart-square-bold-duotone"></span></div>
+</div></div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+<!-- 左侧：岗位列表 -->
+<div class="lg:col-span-2 space-y-5">
+
+<!-- 筛选栏 -->
+<div class="flex items-center justify-between">
+<div class="flex gap-2">
+<button onclick="filterByStatus('')" class="px-4 py-1.5 rounded-xl text-xs font-bold status-filter-btn active-filter" data-status="">全部</button>
+<button onclick="filterByStatus('pending')" class="px-4 py-1.5 rounded-xl text-xs font-bold text-gray-500 bg-white border border-gray-200 hover:border-gray-400 transition-all" data-status="pending">未投递</button>
+<button onclick="filterByStatus('applied')" class="px-4 py-1.5 rounded-xl text-xs font-bold text-gray-500 bg-white border border-gray-200 hover:border-gray-400 transition-all" data-status="applied">投递中</button>
+<button onclick="filterByStatus('interviewing')" class="px-4 py-1.5 rounded-xl text-xs font-bold text-gray-500 bg-white border border-gray-200 hover:border-gray-400 transition-all" data-status="interviewing">面试中</button>
+<button onclick="filterByStatus('offer')" class="px-4 py-1.5 rounded-xl text-xs font-bold text-gray-500 bg-white border border-gray-200 hover:border-gray-400 transition-all" data-status="offer">Offer</button>
+<button onclick="filterByStatus('rejected')" class="px-4 py-1.5 rounded-xl text-xs font-bold text-gray-500 bg-white border border-gray-200 hover:border-gray-400 transition-all" data-status="rejected">已拒绝</button>
+</div>
+<div class="flex gap-2">
+<button class="px-4 py-1.5 bg-white border border-gray-200 rounded-xl text-xs text-gray-500 hover:text-blue-600 hover:border-blue-300 transition-all">
+<span class="iconify text-xs align-middle mr-1" data-icon="solar:refresh-bold"></span>刷新
+</button>
+<button onclick="exportJobs()" class="px-4 py-1.5 bg-white border border-gray-200 rounded-xl text-xs text-gray-500 hover:text-blue-600 hover:border-blue-300 transition-all">
+<span class="iconify text-xs align-middle mr-1" data-icon="solar:download-minimalistic-linear"></span>导出
+</button>
+</div>
+</div>
+
+<!-- 岗位列表 -->
+<div class="space-y-4" id="jobList"></div>
+</div>
+
+<!-- 右侧：数据分析 -->
+<div class="space-y-6">
+
+<!-- 漏斗图 -->
+<div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+<h3 class="text-base font-bold text-gray-800 mb-5 flex items-center gap-2">
+<span class="iconify text-blue-500" data-icon="solar:chart-square-bold-duotone"></span>
+投递漏斗
+</h3>
+<div id="funnelChart" class="w-full h-[180px] mb-4"></div>
+<div class="space-y-2">
+<div class="flex items-center justify-between p-2.5 bg-gray-50 rounded-xl">
+<span class="text-xs text-gray-600">简历通过</span><span class="text-sm font-bold text-gray-800" id="fnScreening">--</span>
+</div>
+<div class="flex items-center justify-between p-2.5 bg-blue-50 rounded-xl">
+<span class="text-xs text-blue-600">初试</span><span class="text-sm font-bold text-blue-700" id="fnFirst">--</span>
+</div>
+<div class="flex items-center justify-between p-2.5 bg-purple-50 rounded-xl">
+<span class="text-xs text-purple-600">复试</span><span class="text-sm font-bold text-purple-700" id="fnFinal">--</span>
+</div>
+<div class="flex items-center justify-between p-2.5 bg-emerald-50 rounded-xl">
+<span class="text-xs text-emerald-600">Offer</span><span class="text-sm font-bold text-emerald-700" id="fnOffer">--</span>
+</div>
+</div>
+</div>
+
+<!-- 面试日历 -->
+<div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+<h3 class="text-base font-bold text-gray-800 mb-4 flex items-center gap-2">
+<span class="iconify text-purple-500" data-icon="solar:calendar-bold-duotone"></span>
+面试日历
+</h3>
+<div class="grid grid-cols-7 gap-1 text-center mb-3">
+<div class="text-xs text-gray-400 py-1">一</div><div class="text-xs text-gray-400 py-1">二</div><div class="text-xs text-gray-400 py-1">三</div><div class="text-xs text-gray-400 py-1">四</div><div class="text-xs text-gray-400 py-1">五</div><div class="text-xs text-gray-400 py-1">六</div><div class="text-xs text-gray-400 py-1">日</div>
+</div>
+<div class="grid grid-cols-7 gap-1" id="calendarGrid"></div>
+<div class="mt-4 space-y-2 pt-4 border-t border-gray-100" id="interviewList">
+<div class="text-center text-gray-400 text-xs py-2">暂无面试安排</div>
+</div>
+</div>
+
+<!-- AI 建议 -->
+<div class="bg-[#111827] rounded-2xl p-6 text-white">
+<div class="flex items-center gap-2 mb-4">
+<span class="iconify text-amber-400 text-xl" data-icon="solar:stars-bold-duotone"></span>
+<h3 class="font-bold text-white">简历自诊建议</h3>
+</div>
+<div class="space-y-3">
+<div class="p-3 bg-white/5 border border-white/10 rounded-xl">
+<p class="text-sm text-gray-300">简历匹配度平均为 <span class="text-amber-400 font-bold">72%</span></p>
+</div>
+<div class="p-3 bg-white/5 border border-white/10 rounded-xl">
+<p class="text-sm text-gray-300">建议针对未投递岗位优化简历，提升面试邀请率</p>
+</div>
+<button onclick="location.href='resumes.html'" class="w-full py-2.5 ai-gradient text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2">
+<span class="iconify" data-icon="solar:magic-stick-bold-duotone"></span>
+立即优化简历
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+
+<!-- 创建岗位弹窗 -->
+<div id="createModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+<div class="bg-white rounded-3xl p-8 w-[640px] max-h-[85vh] overflow-y-auto">
+<div class="flex justify-between items-center mb-6">
+<h3 class="text-xl font-bold text-gray-800">新建岗位</h3>
+<button onclick="hideCreateModal()" class="p-2 hover:bg-gray-100 rounded-xl transition-colors">
+<span class="iconify text-xl text-gray-400" data-icon="solar:close-circle-bold"></span>
+</button>
+</div>
+
+<div class="space-y-5">
+<!-- 基本信息 -->
+<div class="grid grid-cols-2 gap-4">
+<div>
+<label class="block text-sm font-medium text-gray-700 mb-1.5">岗位名称 <span class="text-red-500">*</span></label>
+<input id="jobTitle" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 ring-blue-500/20 outline-none" placeholder="例如：AI产品经理"/>
+</div>
+<div>
+<label class="block text-sm font-medium text-gray-700 mb-1.5">公司名称 <span class="text-red-500">*</span></label>
+<input id="jobCompany" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 ring-blue-500/20 outline-none" placeholder="例如：字节跳动"/>
+</div>
+<div>
+<label class="block text-sm font-medium text-gray-700 mb-1.5">工作地点</label>
+<input id="jobLocation" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 ring-blue-500/20 outline-none" placeholder="例如：北京"/>
+</div>
+<div>
+<label class="block text-sm font-medium text-gray-700 mb-1.5">薪资范围</label>
+<input id="jobSalary" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 ring-blue-500/20 outline-none" placeholder="例如：30-50K"/>
+</div>
+</div>
+
+<!-- JD 上传 -->
+<div>
+<label class="block text-sm font-medium text-gray-700 mb-1.5">岗位 JD</label>
+<div id="jdDropZone" class="drop-zone rounded-xl p-4 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50/20" onclick="document.getElementById('jdFileInput').click()">
+<div id="jdNoFile">
+<span class="iconify text-2xl text-gray-400 mb-2" data-icon="solar:upload-bold-duotone"></span>
+<p class="text-xs text-gray-400">上传 JD 文件或粘贴文本</p>
+</div>
+<div id="jdFileInfo" class="hidden flex items-center gap-3 p-2 bg-blue-50 rounded-lg">
+<span class="iconify text-lg text-blue-500" data-icon="solar:file-text-bold-duotone"></span>
+<span class="text-sm font-medium text-blue-700" id="jdFileName"></span>
+<button onclick="event.stopPropagation(); clearJdFile()" class="ml-auto text-blue-400 hover:text-blue-600">
+<span class="iconify text-lg" data-icon="solar:close-circle-bold"></span>
+</button>
+</div>
+<input id="jdFileInput" type="file" accept=".pdf,.docx,.doc,.txt" class="hidden" onchange="handleJdFileSelect(this)"/>
+</div>
+<div class="flex items-center gap-3 mt-2">
+<div class="flex-1 h-px bg-gray-200"></div><span class="text-xs text-gray-400">或粘贴</span><div class="flex-1 h-px bg-gray-200"></div>
+</div>
+<textarea id="jobJdText" class="w-full h-24 mt-2 px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 ring-blue-500/20 outline-none resize-none" placeholder="粘贴岗位描述（JD）..."></textarea>
+<div id="jdParseLoading" class="hidden text-center py-2">
+<span class="iconify text-lg animate-spin text-blue-500" data-icon="solar:loader-bold"></span><span class="text-xs text-gray-500 ml-2">解析中...</span>
+</div>
+<div id="jdTagsPreview" class="mt-2 flex flex-wrap gap-1.5"></div>
+</div>
+
+<!-- 投递状态 -->
+<div>
+<label class="block text-sm font-medium text-gray-700 mb-2">投递状态</label>
+<div class="grid grid-cols-5 gap-2">
+<button onclick="selectStatus('pending')" class="job-status-btn p-3 border-2 border-gray-200 rounded-xl text-center hover:border-gray-400 transition-all" data-status="pending">
+<div class="text-lg mb-1"><span class="iconify text-gray-400" data-icon="solar:clock-circle-bold-duotone"></span></div>
+<p class="text-xs font-bold text-gray-600">未投递</p>
+</button>
+<button onclick="selectStatus('applied')" class="job-status-btn p-3 border-2 border-gray-200 rounded-xl text-center hover:border-gray-400 transition-all" data-status="applied">
+<div class="text-lg mb-1"><span class="iconify text-amber-500" data-icon="solar:send-square-bold-duotone"></span></div>
+<p class="text-xs font-bold text-gray-600">投递中</p>
+</button>
+<button onclick="selectStatus('interviewing')" class="job-status-btn p-3 border-2 border-gray-200 rounded-xl text-center hover:border-gray-400 transition-all" data-status="interviewing">
+<div class="text-lg mb-1"><span class="iconify text-purple-500" data-icon="solar:chat-round-bold-duotone"></span></div>
+<p class="text-xs font-bold text-gray-600">面试中</p>
+</button>
+<button onclick="selectStatus('offer')" class="job-status-btn p-3 border-2 border-gray-200 rounded-xl text-center hover:border-gray-400 transition-all" data-status="offer">
+<div class="text-lg mb-1"><span class="iconify text-emerald-500" data-icon="solar:cup-star-bold-duotone"></span></div>
+<p class="text-xs font-bold text-gray-600">Offer</p>
+</button>
+<button onclick="selectStatus('rejected')" class="job-status-btn p-3 border-2 border-gray-200 rounded-xl text-center hover:border-gray-400 transition-all" data-status="rejected">
+<div class="text-lg mb-1"><span class="iconify text-red-500" data-icon="solar:close-circle-bold-duotone"></span></div>
+<p class="text-xs font-bold text-gray-600">已拒绝</p>
+</button>
+</div>
+</div>
+
+<!-- 面试提醒（仅面试中显示） -->
+<div id="interviewReminderSection" class="hidden p-4 bg-purple-50 rounded-xl border border-purple-100 space-y-3">
+<div class="flex items-center gap-2 mb-2">
+<span class="iconify text-purple-500" data-icon="solar:alarm-bold-duotone"></span>
+<span class="text-sm font-bold text-purple-700">设置面试提醒</span>
+</div>
+<div class="grid grid-cols-2 gap-3">
+<div>
+<label class="block text-xs text-gray-600 mb-1">面试日期</label>
+<input id="interviewDate" type="date" class="w-full px-3 py-2 border border-purple-200 rounded-xl text-sm outline-none focus:ring-2 ring-purple-500/20"/>
+</div>
+<div>
+<label class="block text-xs text-gray-600 mb-1">面试时间</label>
+<input id="interviewTime" type="time" class="w-full px-3 py-2 border border-purple-200 rounded-xl text-sm outline-none focus:ring-2 ring-purple-500/20"/>
+</div>
+</div>
+<div>
+<label class="block text-xs text-gray-600 mb-1">备注</label>
+<input id="interviewNote" class="w-full px-3 py-2 border border-purple-200 rounded-xl text-sm outline-none focus:ring-2 ring-purple-500/20" placeholder="例如：技术面，考察高并发"/>
+</div>
+</div>
+
+<!-- 关联简历（非未投递时显示） -->
+<div id="linkResumeSection" class="hidden space-y-2">
+<label class="block text-sm font-medium text-gray-700">关联简历</label>
+<select id="linkedResume" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 ring-blue-500/20">
+<option value="">-- 选择简历 --</option>
+</select>
+</div>
+</div>
+
+<div class="flex gap-3 mt-6">
+<button onclick="hideCreateModal()" class="flex-1 py-2.5 border border-gray-200 rounded-xl text-gray-600 font-medium hover:bg-gray-50">取消</button>
+<button onclick="createJob()" class="flex-1 py-2.5 ai-gradient text-white rounded-xl font-bold">创建岗位</button>
+</div>
+</div>
+</div>
+
+<script>
+let jobs = [];
+let resumes = [];
+let currentFilter = '';
+let selectedStatus = 'pending';
+let parsedJdKeywords = [];
+
+async function loadData() {
+    try {
+        const [jobsRes, resumesRes, statsRes, funnelRes] = await Promise.all([
+            authFetch('/api/jobs'), authFetch('/api/resumes'), authFetch('/api/stats'), authFetch('/api/funnel')
+        ]);
+        jobs = await jobsRes.json();
+        resumes = await resumesRes.json();
+        const stats = await statsRes.json();
+        const funnel = await funnelRes.json();
+
+        document.getElementById('statMonthly').innerHTML = `${stats.monthlyApplications||0} <span class="text-base font-normal text-gray-400">份</span>`;
+        document.getElementById('statInterviewing').innerHTML = `${stats.interviewing||0} <span class="text-base font-normal text-gray-400">个</span>`;
+        document.getElementById('statOffer').innerHTML = `${stats.offers||0} <span class="text-base font-normal text-gray-400">个</span>`;
+        const rate = stats.totalApplications > 0 ? ((stats.interviewing / stats.totalApplications) * 100).toFixed(0) : '--';
+        document.getElementById('statRate').innerHTML = `${rate} <span class="text-base font-normal text-gray-400">%</span>`;
+
+        document.getElementById('fnScreening').textContent = funnel.screening;
+        document.getElementById('fnFirst').textContent = funnel.firstInterview;
+        document.getElementById('fnFinal').textContent = funnel.finalInterview;
+        document.getElementById('fnOffer').textContent = funnel.offer;
+    } catch (e) { jobs = []; }
+    renderJobs();
+    initFunnelChart();
+    renderCalendar();
+}
+
+function renderJobs() {
+    const list = document.getElementById('jobList');
+    let filtered = currentFilter ? jobs.filter(j => j.status === currentFilter) : jobs;
+    const q = document.getElementById('searchInput').value.toLowerCase();
+    if (q) filtered = filtered.filter(j => j.title?.toLowerCase().includes(q) || j.company?.toLowerCase().includes(q));
+
+    if (filtered.length === 0) {
+        list.innerHTML = `<div class="bg-white rounded-2xl border border-gray-100 p-12 text-center">
+        <span class="iconify text-5xl text-gray-200 mb-4 block" data-icon="solar:folder-empty-bold-duotone"></span>
+        <p class="text-gray-500 font-medium">${jobs.length === 0 ? '还没有岗位，创建一个开始投递吧' : '没有符合条件的岗位'}</p>
+        ${jobs.length === 0 ? '<button onclick="showCreateModal()" class="mt-4 px-6 py-2 ai-gradient text-white rounded-xl text-sm font-bold">创建第一个岗位</button>' : ''}
+        </div>`;
+        return;
+    }
+
+    const statusMap = {
+        pending: { label: '未投递', bg: 'bg-gray-100', text: 'text-gray-600', border: 'border-gray-200' },
+        applied: { label: '投递中', bg: 'bg-amber-100', text: 'text-amber-700', border: 'border-amber-200' },
+        interviewing: { label: '面试中', bg: 'bg-purple-100', text: 'text-purple-700', border: 'border-purple-200' },
+        offer: { label: 'Offer', bg: 'bg-emerald-100', text: 'text-emerald-700', border: 'border-emerald-200' },
+        rejected: { label: '已拒绝', bg: 'bg-red-100', text: 'text-red-700', border: 'border-red-200' }
+    };
+
+    list.innerHTML = filtered.map(j => {
+        const s = statusMap[j.status] || statusMap.pending;
+        return `<div class="bg-white rounded-2xl border ${s.border} shadow-sm p-6 hover:shadow-md transition-all cursor-pointer" onclick="openJobDetail('${j.id}')">
+        <div class="flex items-start justify-between">
+        <div class="flex-1">
+        <div class="flex items-center gap-3 mb-2">
+        <h4 class="font-bold text-gray-800">${j.title || '岗位名称'}</h4>
+        <span class="px-3 py-1 ${s.bg} ${s.text} text-xs font-bold rounded-full">${s.label}</span>
+        </div>
+        <p class="text-sm text-gray-500 mb-2">${j.company || '公司名称'} · ${j.location || '地点未知'}${j.salary ? ' · ' + j.salary : ''}</p>
+        <div class="flex items-center gap-4 text-xs text-gray-400 flex-wrap">
+        <span>创建: ${j.createdAt ? new Date(j.createdAt).toLocaleDateString() : '--'}</span>
+        ${j.linkedResumeId ? `<span class="text-blue-600">已关联简历</span>` : ''}
+        ${j.interviewTime ? `<span class="text-purple-600">📅 ${j.interviewTime}</span>` : ''}
+        ${j.note ? `<span class="text-gray-500">${j.note}</span>` : ''}
+        </div>
+        </div>
+        <div class="flex items-center gap-2 ml-4">
+        <button onclick="event.stopPropagation(); deleteJob('${j.id}')" class="p-2 hover:bg-red-50 rounded-xl text-gray-300 hover:text-red-500 transition-all">
+        <span class="iconify" data-icon="solar:trash-bold"></span>
+        </button>
+        </div>
+        </div></div>`;
+    }).join('');
+
+    // Update interview list
+    const interviews = jobs.filter(j => j.status === 'interviewing' && j.interviewDate);
+    const il = document.getElementById('interviewList');
+    if (interviews.length === 0) {
+        il.innerHTML = '<div class="text-center text-gray-400 text-xs py-2">暂无面试安排</div>';
+    } else {
+        il.innerHTML = interviews.map(j => `<div class="p-3 bg-purple-50 rounded-xl">
+        <div class="flex items-center gap-2 mb-1"><span class="w-2 h-2 bg-purple-500 rounded-full"></span><span class="text-xs font-bold text-purple-700">${j.interviewDate} ${j.interviewTime||''}</span></div>
+        <p class="text-sm text-gray-700">${j.title} · ${j.company}</p>
+        ${j.note ? `<p class="text-xs text-gray-500 mt-1">${j.note}</p>` : ''}
+        </div>`).join('');
+    }
+}
+
+function filterByStatus(status) {
+    currentFilter = status;
+    document.querySelectorAll('.status-filter-btn').forEach(btn => {
+        const s = btn.dataset.status;
+        if (s === status) {
+            btn.className = 'px-4 py-1.5 rounded-xl text-xs font-bold status-filter-btn active-filter';
+        } else {
+            btn.className = 'px-4 py-1.5 rounded-xl text-xs font-bold text-gray-500 bg-white border border-gray-200 hover:border-gray-400 transition-all';
+        }
+    });
+    renderJobs();
+}
+
+// Create Job Modal
+function showCreateModal() {
+    document.getElementById('createModal').classList.remove('hidden');
+    document.getElementById('createModal').classList.add('flex');
+    document.getElementById('jobTitle').value = '';
+    document.getElementById('jobCompany').value = '';
+    document.getElementById('jobLocation').value = '';
+    document.getElementById('jobSalary').value = '';
+    document.getElementById('jobJdText').value = '';
+    document.getElementById('jdFileInput').value = '';
+    document.getElementById('jdFileInfo').classList.add('hidden');
+    document.getElementById('jdNoFile').classList.remove('hidden');
+    document.getElementById('jdTagsPreview').innerHTML = '';
+    document.getElementById('interviewReminderSection').classList.add('hidden');
+    document.getElementById('linkResumeSection').classList.add('hidden');
+    selectedStatus = 'pending';
+    updateStatusButtons();
+    updateLinkedResumeOptions();
+}
+
+function hideCreateModal() {
+    document.getElementById('createModal').classList.add('hidden');
+    document.getElementById('createModal').classList.remove('flex');
+}
+
+function selectStatus(status) {
+    selectedStatus = status;
+    updateStatusButtons();
+    document.getElementById('interviewReminderSection').classList.toggle('hidden', status !== 'interviewing');
+    document.getElementById('linkResumeSection').classList.toggle('hidden', status === 'pending');
+    if (status === 'interviewing') {
+        // Set default date to tomorrow
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        document.getElementById('interviewDate').value = tomorrow.toISOString().split('T')[0];
+        document.getElementById('interviewTime').value = '10:00';
+    }
+}
+
+function updateStatusButtons() {
+    const map = { pending: ['gray-400','gray-600'], applied: ['amber-500','amber-600'], interviewing: ['purple-500','purple-600'], offer: ['emerald-500','emerald-600'], rejected: ['red-500','red-600'] };
+    document.querySelectorAll('.job-status-btn').forEach(btn => {
+        const s = btn.dataset.status;
+        const [ic, fc] = map[s] || ['gray-400','gray-600'];
+        btn.className = `job-status-btn p-3 border-2 ${s===selectedStatus?'border-blue-500 bg-blue-50':s==='applied'?'border-amber-200':s==='interviewing'?'border-purple-200':s==='offer'?'border-emerald-200':s==='rejected'?'border-red-200':'border-gray-200'} rounded-xl text-center hover:border-gray-400 transition-all`;
+        btn.querySelector('.iconify').className = `iconify text-lg ${s===selectedStatus?'text-blue-500':s==='applied'?'text-amber-500':s==='interviewing'?'text-purple-500':s==='offer'?'text-emerald-500':s==='rejected'?'text-red-500':'text-gray-400'}`;
+    });
+}
+
+function updateLinkedResumeOptions() {
+    const select = document.getElementById('linkedResume');
+    select.innerHTML = '<option value="">-- 选择简历 --</option>' +
+        resumes.map(r => `<option value="${r.id}">${r.name}${r.score?' (AI:'+r.score+')':''}</option>`).join('');
+}
+
+function handleJdFileSelect(input) {
+    const file = input.files[0];
+    if (!file) return;
+    document.getElementById('jdNoFile').classList.add('hidden');
+    document.getElementById('jdFileInfo').classList.remove('hidden');
+    document.getElementById('jdFileName').textContent = '📄 ' + file.name;
+    const reader = new FileReader();
+    reader.onload = e => {
+        document.getElementById('jobJdText').value = e.target.result;
+        parseJdForPreview(e.target.result);
+    };
+    reader.readAsText(file);
+}
+
+function clearJdFile() {
+    document.getElementById('jdFileInput').value = '';
+    document.getElementById('jdNoFile').classList.remove('hidden');
+    document.getElementById('jdFileInfo').classList.add('hidden');
+}
+
+async function parseJdForPreview(text) {
+    if (!text.trim()) return;
+    document.getElementById('jdParseLoading').classList.remove('hidden');
+    try {
+        const res = await authFetch('/api/ai/parse-jd', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ jd: text })
+        });
+        const data = await res.json();
+        parsedJdKeywords = data.tags || [];
+        const preview = document.getElementById('jdTagsPreview');
+        preview.innerHTML = parsedJdKeywords.slice(0, 12).map(t => `<span class="px-2 py-0.5 bg-blue-50 text-blue-600 text-xs rounded-full border border-blue-100">${t.name}</span>`).join('');
+        if (parsedJdKeywords.length > 12) preview.innerHTML += `<span class="text-xs text-gray-400">+${parsedJdKeywords.length - 12}</span>`;
+    } catch (e) {}
+    document.getElementById('jdParseLoading').classList.add('hidden');
+}
+
+// JD text change → auto-parse
+document.getElementById('jobJdText')?.addEventListener('input', debounce(function() {
+    parseJdForPreview(this.value);
+}, 800));
+
+// Drag & drop
+const jdDz = document.getElementById('jdDropZone');
+jdDz.addEventListener('dragover', e => { e.preventDefault(); jdDz.classList.add('dragover'); });
+jdDz.addEventListener('dragleave', () => jdDz.classList.remove('dragover'));
+jdDz.addEventListener('drop', e => {
+    e.preventDefault(); jdDz.classList.remove('dragover');
+    if (e.dataTransfer.files[0]) { document.getElementById('jdFileInput').files = e.dataTransfer.files; handleJdFileSelect(document.getElementById('jdFileInput')); }
+});
+
+async function createJob() {
+    const title = document.getElementById('jobTitle').value.trim();
+    const company = document.getElementById('jobCompany').value.trim();
+    if (!title || !company) { alert('请填写岗位名称和公司名称'); return; }
+
+    const job = {
+        title,
+        company,
+        location: document.getElementById('jobLocation').value.trim(),
+        salary: document.getElementById('jobSalary').value.trim(),
+        jdText: document.getElementById('jobJdText').value.trim(),
+        status: selectedStatus,
+        linkedResumeId: selectedStatus !== 'pending' ? document.getElementById('linkedResume').value : null,
+        interviewDate: selectedStatus === 'interviewing' ? document.getElementById('interviewDate').value : null,
+        interviewTime: selectedStatus === 'interviewing' ? document.getElementById('interviewTime').value : null,
+        note: selectedStatus === 'interviewing' ? document.getElementById('interviewNote').value.trim() : null
+    };
+
+    try {
+        const res = await authFetch('/api/jobs', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(job)
+        });
+        console.log('Create job response status:', res.status);
+        if (!res.ok) {
+            const errText = await res.text();
+            console.error('Create job failed:', errText);
+            alert('创建失败: ' + errText);
+            return;
+        }
+        const newJob = await res.json();
+        console.log('Created job:', newJob);
+        jobs.push(newJob);
+        renderJobs();
+        hideCreateModal();
+    } catch (e) { console.error('Create job error:', e); alert('创建失败: ' + e.message); }
+}
+
+async function deleteJob(id) {
+    if (!confirm('确定删除该岗位？')) return;
+    await authFetch(`/api/jobs/${id}`, { method: 'DELETE' });
+    jobs = jobs.filter(j => j.id !== id);
+    renderJobs();
+}
+
+function openJobDetail(id) {
+    window.location.href = `job-detail.html?id=${id}`;
+}
+
+function exportJobs() {
+    if (jobs.length === 0) return;
+    const csv = ['岗位,公司,地点,状态,创建时间'].concat(
+        jobs.map(j => `"${j.title}","${j.company}","${j.location||''}","${j.status}","${j.createdAt?new Date(j.createdAt).toLocaleDateString():''}"`)
+    ).join('\n');
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `岗位列表_${new Date().toLocaleDateString()}.csv`;
+    a.click();
+}
+
+function initFunnelChart() {
+    const c = echarts.init(document.getElementById('funnelChart'));
+    c.setOption({
+        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+        grid: { left: '3%', right: '4%', bottom: '3%', top: '3%', containLabel: true },
+        xAxis: { type: 'value', show: false },
+        yAxis: { type: 'category', data: ['简历通过','初试','复试','Offer'], axisLine: { show: false }, axisTick: { show: false }, axisLabel: { fontSize: 11 } },
+        series: [{
+            type: 'bar',
+            data: [
+                { value: 76, itemStyle: { color: '#93C5FD', borderRadius: [8,8,8,8] } },
+                { value: 38, itemStyle: { color: '#818CF8', borderRadius: [8,8,8,8] } },
+                { value: 12, itemStyle: { color: '#A78BFA', borderRadius: [8,8,8,8] } },
+                { value: 3, itemStyle: { color: '#34D399', borderRadius: [8,8,8,8] } }
+            ],
+            barWidth: 16
+        }]
+    });
+    window.addEventListener('resize', () => c.resize());
+}
+
+function renderCalendar() {
+    const grid = document.getElementById('calendarGrid');
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    const firstDay = (new Date(year, month, 1).getDay() + 6) % 7;
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const interviewDays = jobs.filter(j => j.status === 'interviewing' && j.interviewDate).map(j => parseInt(j.interviewDate.split('-')[2]));
+
+    let html = '';
+    for (let i = 0; i < firstDay; i++) html += '<div></div>';
+    for (let d = 1; d <= daysInMonth; d++) {
+        const isToday = d === now.getDate();
+        const hasInterview = interviewDays.includes(d);
+        html += `<div class="p-1.5 text-center rounded-lg ${isToday?'bg-blue-500 text-white':hasInterview?'bg-purple-100 text-purple-700':'hover:bg-gray-50'} text-xs cursor-pointer">${d}</div>`;
+    }
+    grid.innerHTML = html;
+}
+
+function debounce(fn, delay) {
+    let timer;
+    return function(...args) { clearTimeout(timer); timer = setTimeout(() => fn.apply(this, args), delay); };
+}
+
+async function checkAuth() {
+    try {
+        const res = await authFetch('/api/auth/me');
+        if (!res.ok) { window.location.href = 'login.html?redirect=applications.html'; return null; }
+        const user = await res.json();
+        document.getElementById('navUsername').textContent = user.username;
+        document.getElementById('menuLogout').classList.remove('hidden');
+        return user;
+    } catch { window.location.href = 'login.html?redirect=applications.html'; return null; }
+}
+
+async function logout() {
+    await authFetch('/api/auth/logout', { method: 'POST' });
+    localStorage.removeItem('jobpilot_token');
+    localStorage.removeItem('jobpilot_user');
+    window.location.href = 'login.html';
+}
+
+function authFetch(url, options = {}) {
+    const token = localStorage.getItem('jobpilot_token');
+    if (token) {
+        options.headers = { ...options.headers, 'Authorization': 'Bearer ' + token };
+    }
+    return fetch(url, options);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const navUser = document.getElementById('navUser');
+    const userMenu = document.getElementById('userMenu');
+    navUser?.addEventListener('click', () => userMenu?.classList.toggle('hidden'));
+    document.addEventListener('click', (e) => { if (!e.target.closest('.group')) userMenu?.classList.add('hidden'); });
+});
+
+document.getElementById('searchInput').addEventListener('input', () => renderJobs());
+checkAuth().then(() => loadData());
+</script>
+</body>
+</html>

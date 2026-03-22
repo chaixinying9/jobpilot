@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>登录 | JobPilot</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+    body { font-family: 'Inter', sans-serif; }
+    .tab-active { border-bottom: 2px solid #2563EB; color: #2563EB; }
+    .fade-in { animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+</head>
+<body class="min-h-screen flex items-center justify-center" style="background: linear-gradient(135deg, #1e3a5f 0%, #0f1c2e 100%);">
+<div class="w-full max-w-md px-4">
+
+    <!-- Logo -->
+    <div class="text-center mb-8 fade-in">
+        <h1 class="text-3xl font-bold text-white mb-1">JobPilot</h1>
+        <p class="text-gray-400 text-sm">AI 驱动的求职效率工具</p>
+    </div>
+
+    <!-- Card -->
+    <div class="bg-white rounded-2xl shadow-2xl p-8 fade-in" style="border-radius: 16px;">
+        <!-- Tabs -->
+        <div class="flex border-b border-gray-200 mb-6">
+            <button onclick="switchTab('login')" id="tabLogin" class="flex-1 py-2 text-center font-medium text-gray-500 tab-active">登录</button>
+            <button onclick="switchTab('register')" id="tabRegister" class="flex-1 py-2 text-center font-medium text-gray-500">注册</button>
+        </div>
+
+        <!-- Error / Success -->
+        <div id="msg" class="hidden mb-4 p-3 rounded-lg text-sm"></div>
+
+        <!-- Login Form -->
+        <form id="loginForm" onsubmit="handleLogin(event)">
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">邮箱 / 手机号</label>
+                    <input type="text" id="loginAccount" required placeholder="请输入邮箱或手机号"
+                        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"/>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">密码</label>
+                    <input type="password" id="loginPassword" required placeholder="请输入密码"
+                        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"/>
+                </div>
+                <div class="flex items-center">
+                    <input type="checkbox" id="rememberMe" checked class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"/>
+                    <label for="rememberMe" class="ml-2 text-sm text-gray-600">30 天内自动登录</label>
+                </div>
+                <button type="submit" id="loginBtn"
+                    class="w-full py-2.5 text-white rounded-lg font-medium text-base transition hover:opacity-90"
+                    style="background: linear-gradient(135deg, #2563EB 0%, #7C3AED 100%);">
+                    登录
+                </button>
+            </div>
+        </form>
+
+        <!-- Register Form (hidden by default) -->
+        <form id="registerForm" class="hidden space-y-4" onsubmit="handleRegister(event)">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">用户名 / 昵称 <span class="text-red-500">*</span></label>
+                <input type="text" id="regUsername" required minlength="2" maxlength="20" placeholder="2-20个字符"
+                    class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"/>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">邮箱 <span class="text-red-500">*</span></label>
+                <input type="email" id="regEmail" required placeholder="用于登录和找回密码"
+                    class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"/>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">手机号</label>
+                <input type="tel" id="regPhone" placeholder="选填，可用于登录"
+                    class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"/>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">密码 <span class="text-red-500">*</span></label>
+                <input type="password" id="regPassword" required minlength="6" placeholder="至少6个字符"
+                    class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"/>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">确认密码 <span class="text-red-500">*</span></label>
+                <input type="password" id="regPassword2" required placeholder="再次输入密码"
+                    class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"/>
+            </div>
+            <button type="submit" id="regBtn"
+                class="w-full py-2.5 text-white rounded-lg font-medium text-base transition hover:opacity-90"
+                style="background: linear-gradient(135deg, #2563EB 0%, #7C3AED 100%);">
+                注册
+            </button>
+        </form>
+
+        <!-- Back link -->
+        <div class="mt-6 text-center">
+            <a href="/" class="text-sm text-gray-400 hover:text-gray-600 transition">← 返回首页</a>
+        </div>
+    </div>
+</div>
+
+<script>
+function getRedirect() {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('redirect') || '/';
+}
+
+function switchTab(tab) {
+    document.getElementById('tabLogin').classList.toggle('tab-active', tab === 'login');
+    document.getElementById('tabLogin').classList.toggle('text-gray-500', tab !== 'login');
+    document.getElementById('tabRegister').classList.toggle('tab-active', tab === 'register');
+    document.getElementById('tabRegister').classList.toggle('text-gray-500', tab !== 'register');
+    document.getElementById('loginForm').classList.toggle('hidden', tab !== 'login');
+    document.getElementById('registerForm').classList.toggle('hidden', tab !== 'register');
+    hideMsg();
+}
+
+function showMsg(text, type) {
+    const el = document.getElementById('msg');
+    el.textContent = text;
+    el.className = 'mb-4 p-3 rounded-lg text-sm ' + (type === 'error' ? 'bg-red-50 text-red-600 border border-red-200' : 'bg-green-50 text-green-600 border border-green-200');
+    el.classList.remove('hidden');
+}
+
+function hideMsg() {
+    document.getElementById('msg').classList.add('hidden');
+}
+
+function setBtnLoading(btn, loading, text) {
+    btn.disabled = loading;
+    btn.textContent = loading ? '处理中...' : text;
+}
+
+async function handleLogin(e) {
+    e.preventDefault();
+    const account = document.getElementById('loginAccount').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    const remember = document.getElementById('rememberMe').checked;
+    const btn = document.getElementById('loginBtn');
+    hideMsg();
+
+    if (!account || !password) { showMsg('请填写所有字段', 'error'); return; }
+
+    setBtnLoading(btn, true);
+    try {
+        const res = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ account, password })
+        });
+        const data = await res.json();
+        if (!res.ok) { showMsg(data.error || '登录失败', 'error'); return; }
+        localStorage.setItem('jobpilot_token', data.token);
+        localStorage.setItem('jobpilot_user', JSON.stringify(data.user));
+        showMsg('登录成功，正在跳转...', 'success');
+        setTimeout(() => { window.location.href = getRedirect(); }, 300);
+    } catch (e) {
+        showMsg('网络错误，请重试', 'error');
+    } finally {
+        setBtnLoading(btn, false, '登录');
+    }
+}
+
+async function handleRegister(e) {
+    e.preventDefault();
+    const username = document.getElementById('regUsername').value.trim();
+    const email = document.getElementById('regEmail').value.trim();
+    const phone = document.getElementById('regPhone').value.trim();
+    const password = document.getElementById('regPassword').value;
+    const password2 = document.getElementById('regPassword2').value;
+    const btn = document.getElementById('regBtn');
+    hideMsg();
+
+    if (!username || !email || !password) { showMsg('请填写所有必填字段', 'error'); return; }
+    if (password !== password2) { showMsg('两次密码输入不一致', 'error'); return; }
+    if (password.length < 6) { showMsg('密码至少6个字符', 'error'); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showMsg('请输入有效的邮箱地址', 'error'); return; }
+
+    setBtnLoading(btn, true);
+    try {
+        const res = await fetch('/api/auth/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, email, phone: phone || null, password })
+        });
+        const data = await res.json();
+        if (!res.ok) { showMsg(data.error || '注册失败', 'error'); return; }
+        showMsg('注册成功，正在跳转...', 'success');
+        setTimeout(() => { window.location.href = getRedirect(); }, 300);
+    } catch (e) {
+        showMsg('网络错误，请重试', 'error');
+    } finally {
+        setBtnLoading(btn, false, '注册');
+    }
+}
+
+function authFetch(url, options = {}) {
+    const token = localStorage.getItem('jobpilot_token');
+    if (token) {
+        options.headers = { ...options.headers, 'Authorization': 'Bearer ' + token };
+    }
+    return fetch(url, options);
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+    const token = localStorage.getItem('jobpilot_token');
+    if (token) {
+        authFetch('/api/auth/me').then(r => {
+            if (r.ok) window.location.href = getRedirect();
+        }).catch(() => {
+            localStorage.removeItem('jobpilot_token');
+            localStorage.removeItem('jobpilot_user');
+        });
+    }
+});
+</script>
+</body>
+</html>

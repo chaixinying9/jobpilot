@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AI 简历优化 | JobPilot</title>
+<script src="/lib/jszip/jszip.min.js"></script>
+<script type="importmap">{"imports":{"jszip":"/lib/jszip/jszip.mjs"}}</script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://code.iconify.design/3/3.1.1/iconify.min.js"></script>
+<script src="/lib/html2pdf/html2pdf.bundle.min.js"></script>
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=SimSun:ital,wght@0,400;0,700;1,400&display=swap');
+    html, body { height: 100%; overflow: hidden; margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', sans-serif; background: #F3F4F6; display: flex; flex-direction: column; }
+    .ai-gradient { background: linear-gradient(135deg, #2563EB 0%, #7C3AED 100%); }
+    .step-dot { width: 10px; height: 10px; border-radius: 50%; background: #E5E7EB; cursor: pointer; transition: all 0.2s; display: inline-block; }
+    .step-dot.active { background: #2563EB; transform: scale(1.4); }
+    .step-dot.done { background: #10B981; }
+    .step-dot.current { background: #F59E0B; transform: scale(1.3); box-shadow: 0 0 0 3px rgba(245,158,11,0.3); }
+    #resumePreview { flex: 1; overflow-y: auto; overflow-x: hidden; background: #E5E7EB; }
+    .preview-page { background: white !important; width: 750px !important; min-height: 100% !important; margin: 0 auto !important; padding: 40px 50px !important; box-shadow: 0 4px 24px rgba(0,0,0,0.12) !important; box-sizing: border-box !important; }
+    .ai-highlight { background: #FEF9C3; border-bottom: 2px solid #EAB308; cursor: pointer; padding: 0 2px; border-radius: 2px; display: inline; }
+    .ai-highlight:hover { background: #FDE68A; }
+    .ai-highlight.selected { background: #FDE68A !important; box-shadow: 0 0 0 2px #F59E0B; outline: none !important; }
+    .ai-highlight.ai-conf { border-bottom-color: #2563EB; }
+    .ai-highlight.flash { animation: flashHighlight 0.8s ease-out; }
+    @keyframes flashHighlight { 0%{background:#FDE047} 100%{background:#FEF9C3} }
+    .ai-highlight-inner[contenteditable="true"] { outline: none; }
+    #docxContainer, #docxContainer * { font-family: 'SimSun', serif !important; font-size: 12pt !important; line-height: 1.8 !important; color: #000 !important; word-wrap: break-word !important; }
+    #docxContainer p, #docxContainer div { margin: 4px 0 !important; padding: 0 !important; line-height: 1.8 !important; }
+    #docxContainer table { border-collapse: collapse !important; width: 100% !important; margin: 8px 0 !important; }
+    #docxContainer td { padding: 2px 6px !important; border: 1px solid #ddd !important; }
+    #docxContainer img { max-width: 100% !important; height: auto !important; display: block !important; }
+    #docxContainer strong, #docxContainer b { font-weight: bold !important; }
+    #docxContainer em, #docxContainer i { font-style: italic !important; }
+    #docxContainer h1, #docxContainer h2, #docxContainer h3 { font-size: 14pt !important; font-weight: bold !important; margin: 8px 0 !important; }
+    .docx-preview-wrapper { width: 100% !important; max-width: 750px !important; margin: 0 auto !important; background: white !important; }
+    .docx-file { width: 100% !important; max-width: 750px !important; margin: 0 auto !important; padding: 0 !important; background: white !important; }
+    #textContainer { font-family: 'SimSun', serif !important; font-size: 12pt !important; line-height: 1.8 !important; color: #000 !important; white-space: pre-wrap !important; word-break: break-word !important; }
+    #currentDetailWrapper { scrollbar-width: thin; scrollbar-color: #CBD5E1 transparent; }
+    #currentDetailWrapper::-webkit-scrollbar { width: 4px; }
+    #currentDetailWrapper::-webkit-scrollbar-track { background: transparent; }
+    #currentDetailWrapper::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 2px; }
+    #currentDetail .space-y-3 > div { border-radius: 8px; }
+    .spinner { width: 36px; height: 36px; border: 3px solid #E5E7EB; border-top-color: #2563EB; border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<header class="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-6 shrink-0 z-20">
+<div class="flex items-center gap-3">
+<button onclick="history.back()" class="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-800">
+<span class="iconify text-lg" data-icon="solar:arrow-left-bold"></span> 返回
+</button>
+<span class="text-gray-300">|</span>
+<h1 class="text-base font-semibold text-gray-800">AI 简历优化</h1>
+<span class="text-xs text-gray-400" id="resumeTitle"></span>
+</div>
+ <div class="flex items-center gap-3">
+  <span class="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-full" id="optimizeType"></span>
+  <span class="text-xs text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full" id="changeCount">0 处改写</span>
+  <button onclick="logout()" class="text-xs text-gray-400 hover:text-red-500 px-2 py-1 rounded-full hover:bg-red-50 transition-colors">退出登录</button>
+ </div>
+</header>
+
+<div style="flex:1;display:flex;min-height:0;overflow:hidden;">
+
+<div id="resumePreview" style="flex:1;min-width:0;">
+<div id="previewLoading" class="flex items-center justify-center h-64">
+<div class="text-center">
+<div class="spinner mx-auto mb-3"></div>
+<p class="text-sm text-gray-500">正在加载简历预览...</p>
+</div>
+</div>
+<div id="pdfContainer" class="hidden" style="width:750px;margin:0 auto;"></div>
+<div id="docxContainer" class="preview-page" style="display:none;"></div>
+<div id="textContainer" class="preview-page" style="display:none;"></div>
+</div>
+
+<aside class="w-80 bg-white border-l border-gray-200 flex flex-col shrink-0" style="flex-shrink:0;">
+
+<div class="ai-gradient p-5 text-white">
+<div class="flex items-center gap-2 mb-1">
+<span class="iconify text-xl" data-icon="solar:magic-stick-bold-duotone"></span>
+<span class="font-bold">AI 简历优化</span>
+</div>
+<p class="text-white/70 text-xs" id="resumeType"></p>
+</div>
+
+<div class="p-5 border-b border-gray-100">
+<div class="flex justify-between items-center mb-3">
+<span class="text-sm font-bold text-gray-700">改写建议</span>
+<span class="text-xs text-gray-400" id="progressLabel">0/0</span>
+</div>
+<div class="flex gap-2 mb-3">
+<button onclick="prevSuggestion()" id="prevBtn" class="flex-1 py-1.5 border border-gray-200 text-gray-600 rounded-lg text-xs font-medium hover:bg-gray-50 flex items-center justify-center gap-1 disabled:opacity-40" disabled>
+<span class="iconify text-sm" data-icon="solar:arrow-left-bold"></span> 上一个
+</button>
+<button onclick="nextSuggestion()" id="nextBtn" class="flex-1 py-1.5 border border-gray-200 text-gray-600 rounded-lg text-xs font-medium hover:bg-gray-50 flex items-center justify-center gap-1 disabled:opacity-40" disabled>
+下一个 <span class="iconify text-sm" data-icon="solar:arrow-right-bold"></span>
+</button>
+</div>
+<div class="flex flex-wrap gap-1" id="stepDots"></div>
+</div>
+
+<div class="flex-1 overflow-y-auto" id="currentDetailWrapper">
+<div class="p-5" id="currentDetail">
+<div class="text-center py-12 text-gray-400">
+<span class="iconify text-4xl" data-icon="solar:file-search-bold-duotone"></span>
+<p class="text-sm mt-2">点击上方建议查看详情</p>
+</div>
+</div>
+</div>
+
+<div class="border-t border-gray-100 p-3" style="flex-shrink:0;">
+<p class="text-xs text-center text-gray-400 mb-2"><span id="acceptedCount">0</span> / <span id="suggestionTotalCount">0</span> 已采纳</p>
+<div class="flex gap-2">
+<button onclick="prevSuggestion()" id="prevBtn" class="flex-1 py-1 border border-gray-200 text-gray-600 rounded-lg text-xs font-medium hover:bg-gray-50 disabled:opacity-40 flex items-center justify-center gap-1" disabled>
+<span class="iconify text-sm" data-icon="solar:arrow-left-bold"></span>
+</button>
+<button onclick="nextSuggestion()" id="nextBtn" class="flex-1 py-1 border border-gray-200 text-gray-600 rounded-lg text-xs font-medium hover:bg-gray-50 disabled:opacity-40 flex items-center justify-center gap-1" disabled>
+<span class="iconify text-sm" data-icon="solar:arrow-right-bold"></span>
+</button>
+<button onclick="toggleAcceptAll()" id="toggleAllBtn" class="flex-1 py-1 border border-gray-200 text-gray-600 rounded-lg text-xs font-medium hover:bg-gray-50">全选</button>
+</div>
+</div>
+
+<div class="border-t border-gray-100 p-3 space-y-1.5" style="flex-shrink:0;">
+<button onclick="exportDocx()" class="w-full py-2.5 ai-gradient text-white rounded-xl text-sm font-bold hover:opacity-90 flex items-center justify-center gap-2">
+<span class="iconify text-base" data-icon="solar:download-bold-duotone"></span> 导出 Word
+</button>
+<button onclick="exportPdf()" class="w-full py-2 bg-white border border-gray-200 text-gray-700 rounded-xl text-xs font-bold hover:bg-gray-50 flex items-center justify-center gap-2">
+<span class="iconify text-base text-red-500" data-icon="solar:file-smile-broken"></span> 导出 PDF
+</button>
+<button onclick="saveOptimized()" id="saveBtn" class="w-full py-2 bg-white border border-gray-200 text-gray-700 rounded-xl text-xs font-bold hover:bg-gray-50 flex items-center justify-center gap-2">
+<span class="iconify text-base text-emerald-500" data-icon="solar:save-bold-duotone"></span> 保存到简历库
+</button>
+</div>
+
+</aside>
+</div>
+
+<script type="module">
+import * as pdfjsLib from '/lib/pdf/pdf.min.mjs';
+pdfjsLib.GlobalWorkerOptions.workerSrc = '/lib/pdf/pdf.worker.min.mjs';
+window.pdfjsLib = pdfjsLib;
+
+import { renderAsync } from '/lib/docx/docx-preview.min.mjs';
+window.docxRenderAsync = renderAsync;
+
+async function loadApp() {
+    try {
+        const authRes = await authFetch('/api/auth/me');
+        if (!authRes.ok) { window.location.href = 'login.html?redirect=' + encodeURIComponent(window.location.pathname + window.location.search); return; }
+    } catch { window.location.href = 'login.html'; return; }
+
+    function getParams() {
+        const params = new URLSearchParams(window.location.search);
+        const sessionId = params.get('id');
+        if (sessionId) {
+            const raw = localStorage.getItem(sessionId);
+            if (raw) {
+                try {
+                    const d = JSON.parse(raw);
+                    localStorage.removeItem(sessionId);
+                    return d;
+                } catch (e) {}
+            }
+        }
+        document.body.innerHTML = '<div style="padding:60px;text-align:center"><h2 style="color:#DC2626">没有找到优化结果</h2><p>请返回简历管理页面重新优化</p><a href="resumes.html" style="color:#2563EB">返回简历管理</a></div>';
+        return null;
+    }
+
+    function escapeHtml(str) {
+        return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    const data = getParams();
+    if (!data) return;
+
+    const allSuggestions = data.suggestions || [];
+    let currentIndex = 0;
+    let acceptedStates = {};
+    let manualOverrides = {};
+    let renderedDocText = '';
+
+    allSuggestions.forEach(s => {
+        acceptedStates[s.id] = true;
+        manualOverrides[s.id] = s.rewritten || '';
+    });
+
+    document.getElementById('resumeTitle').textContent = '— ' + (data.name || '简历');
+    document.getElementById('optimizeType').textContent = data.type === 'targeted' ? '岗位针对版' : '通用版';
+    document.getElementById('resumeType').textContent = data.type === 'targeted' ? '岗位针对版 · 精准匹配' : '通用版 · 全面优化';
+
+    async function initPreview() {
+        document.getElementById('previewLoading').classList.remove('hidden');
+        document.getElementById('pdfContainer').style.display = 'none';
+        document.getElementById('docxContainer').style.display = 'none';
+        document.getElementById('textContainer').style.display = 'none';
+
+        if (data.filePath) {
+            const filename = data.filePath.split('/').pop();
+            const ext = filename.split('.').pop().toLowerCase();
+            const url = '/api/file/' + encodeURIComponent(filename);
+
+            if (ext === 'pdf') {
+                await renderPdf(url);
+            } else if (ext === 'docx' || ext === 'doc') {
+                await renderDocx(url);
+            } else {
+                renderText(data.textContent || data.html || '');
+            }
+        } else if (data.html && data.html.includes('<img')) {
+            const c = document.getElementById('docxContainer');
+            c.innerHTML = data.html;
+            c.style.display = '';
+            renderedDocText = c.innerText;
+        } else if (data.textContent) {
+            renderText(data.textContent);
+        } else if (data.html) {
+            const c = document.getElementById('docxContainer');
+            c.innerHTML = data.html;
+            c.style.display = '';
+            renderedDocText = c.innerText;
+        }
+
+        document.getElementById('previewLoading').style.display = 'none';
+        applyHighlights();
+        highlightCurrent();
+    }
+
+    async function renderPdf(url) {
+        try {
+            const container = document.getElementById('pdfContainer');
+            container.innerHTML = '';
+            container.style.display = '';
+            const loadingTask = window.pdfjsLib.getDocument(url);
+            const pdf = await loadingTask.promise;
+            const scale = 1.2;
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const viewport = page.getViewport({ scale });
+                const canvas = document.createElement('canvas');
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+                canvas.style.display = 'block';
+                canvas.style.margin = '20px auto';
+                canvas.style.boxShadow = '0 4px 24px rgba(0,0,0,0.12)';
+                container.appendChild(canvas);
+                await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+            }
+            renderedDocText = '';
+        } catch (e) {
+            renderText(data.textContent || '（PDF 预览失败，请导出查看）');
+        }
+    }
+
+    async function renderDocx(url) {
+        try {
+            const container = document.getElementById('docxContainer');
+            container.innerHTML = '<div class="text-center py-12"><div class="spinner mx-auto mb-3"></div><p class="text-sm text-gray-500">正在渲染 Word 文档...</p></div>';
+            container.style.display = '';
+            const response = await fetch(url);
+            const arrayBuffer = await response.arrayBuffer();
+            if (window.docxRenderAsync) {
+                container.innerHTML = '';
+                await window.docxRenderAsync(arrayBuffer, container, null, {
+                    ignoreWidth: false,
+                    ignoreHeight: false,
+                    ignoreFonts: false,
+                    breakPages: false,
+                    inWrapper: true
+                });
+            } else {
+                container.innerHTML = '<p style="font-family:SimSun">(Word 渲染器加载失败，请导出查看)</p>';
+            }
+            renderedDocText = container.innerText;
+        } catch (e) {
+            if (data.html) {
+                const c = document.getElementById('docxContainer');
+                c.innerHTML = data.html;
+                c.style.display = '';
+                renderedDocText = c.innerText;
+            } else {
+                renderText(data.textContent || '（Word 预览失败）');
+            }
+        }
+    }
+
+    function renderText(text) {
+        const container = document.getElementById('textContainer');
+        container.innerHTML = '<div>' + escapeHtml(text) + '</div>';
+        container.style.display = '';
+        renderedDocText = text;
+    }
+
+    function applyHighlights() {
+        const container = document.getElementById('docxContainer');
+        if (!container || container.style.display === 'none') return;
+
+        container.querySelectorAll('.ai-highlight').forEach(el => {
+            const textNode = document.createTextNode(el.textContent);
+            el.parentNode.replaceChild(textNode, el);
+        });
+
+        allSuggestions.forEach(s => {
+            if (acceptedStates[s.id] !== false) {
+                highlightText(s);
+            }
+        });
+    }
+
+    function highlightText(s) {
+        const container = document.getElementById('docxContainer');
+        if (!container || container.style.display === 'none') return;
+        const orig = s.original || '';
+        const rew = manualOverrides[s.id] || s.rewritten || '';
+        if (!orig || !rew || orig === rew) return;
+
+        const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null, false);
+        const textNodes = [];
+        let node;
+        while (node = walker.nextNode()) textNodes.push(node);
+
+        let fullText = '';
+        const offsets = [];
+        textNodes.forEach(n => { offsets.push({ node: n, start: fullText.length }); fullText += n.textContent; });
+
+        let idx = fullText.indexOf(orig);
+        if (idx === -1) return;
+
+        let nodeIdx = 0;
+        for (let i = 0; i < textNodes.length; i++) {
+            const off = offsets[i].start;
+            if (off + textNodes[i].textContent.length > idx) { nodeIdx = i; break; }
+        }
+
+        const n = textNodes[nodeIdx];
+        const pos = idx - offsets[nodeIdx].start;
+        const before = n.textContent.substring(0, pos);
+        const after = n.textContent.substring(pos + orig.length);
+
+        const outer = document.createElement('span');
+        outer.className = 'ai-highlight' + (s.confidence >= 0.7 ? ' ai-conf' : '');
+        outer.setAttribute('data-sid', s.id);
+        outer.title = '置信度 ' + Math.round(s.confidence * 100) + '% | 直接修改文字 | 点击右侧按钮取消采纳';
+        outer.onclick = (e) => {
+            e.stopPropagation();
+            const idx = allSuggestions.findIndex(x => x.id === s.id);
+            if (idx >= 0) { currentIndex = idx; highlightCurrent(); refresh(); }
+        };
+
+        const inner = document.createElement('span');
+        inner.className = 'ai-highlight-inner';
+        inner.contentEditable = 'true';
+        inner.textContent = rew;
+        inner.onblur = () => {
+            const newText = inner.textContent.trim();
+            if (newText && newText !== rew) {
+                manualOverrides[s.id] = newText;
+                refresh();
+            } else if (!newText) {
+                inner.textContent = rew;
+            }
+        };
+        inner.onkeydown = (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); inner.blur(); }
+            if (e.key === 'Escape') { inner.textContent = rew; inner.blur(); }
+        };
+
+        outer.appendChild(inner);
+
+        const frag = document.createDocumentFragment();
+        frag.appendChild(document.createTextNode(before));
+        frag.appendChild(outer);
+        frag.appendChild(document.createTextNode(after));
+        n.parentNode.replaceChild(frag, n);
+    }
+
+    function highlightCurrent() {
+        const container = document.getElementById('docxContainer');
+        if (!container) return;
+        container.querySelectorAll('.ai-highlight.selected').forEach(el => el.classList.remove('selected'));
+        const currentId = allSuggestions[currentIndex]?.id;
+        if (currentId) {
+            const span = container.querySelector('span[data-sid="' + currentId + '"]');
+            if (span) span.classList.add('selected');
+        }
+    }
+
+    function scrollToHighlight(id) {
+        const container = document.getElementById('docxContainer');
+        if (!container) return;
+        const span = container.querySelector('span[data-sid="' + id + '"]');
+        if (span) {
+            span.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            span.classList.remove('flash');
+            void span.offsetWidth;
+            span.classList.add('flash');
+        }
+    }
+
+    function toggleAccept(id) {
+        const s = allSuggestions.find(x => x.id === id);
+        if (!s) return;
+        if (acceptedStates[id] === false) {
+            acceptedStates[id] = true;
+            applyHighlights();
+        } else {
+            acceptedStates[id] = false;
+            const container = document.getElementById('docxContainer');
+            if (!container) return;
+            const span = container.querySelector('span[data-sid="' + id + '"]');
+            if (span) span.parentNode.replaceChild(document.createTextNode(s.original || span.textContent), span);
+        }
+        highlightCurrent();
+        refresh();
+    }
+
+    function toggleAcceptAll() {
+        const allAccepted = allSuggestions.every(s => acceptedStates[s.id] !== false);
+        allSuggestions.forEach(s => { acceptedStates[s.id] = allAccepted ? false : true; });
+        applyHighlights();
+        highlightCurrent();
+        refresh();
+    }
+
+    function refresh() {
+        updateStats();
+        updateCurrentDetail();
+        updateStepDots();
+    }
+
+    function updateStats() {
+        const container = document.getElementById('docxContainer');
+        const count = container && container.style.display !== 'none'
+            ? container.querySelectorAll('span.ai-highlight').length
+            : allSuggestions.filter(s => acceptedStates[s.id] !== false).length;
+        document.getElementById('acceptedCount').textContent = count;
+        document.getElementById('suggestionTotalCount').textContent = allSuggestions.length;
+        document.getElementById('changeCount').textContent = count + ' 处改写';
+        const allAccepted = allSuggestions.every(s => acceptedStates[s.id] !== false);
+        document.getElementById('toggleAllBtn').textContent = allAccepted ? '取消全部' : '采纳全部';
+    }
+
+    function updateStepDots() {
+        const c = document.getElementById('stepDots');
+        if (!allSuggestions.length) { c.innerHTML = ''; document.getElementById('progressLabel').textContent = '0/0'; return; }
+        c.innerHTML = allSuggestions.map((s, i) => {
+            let cls = 'step-dot mx-0.5';
+            if (i === currentIndex) cls += ' active';
+            else if (i < currentIndex) cls += ' done';
+            if (acceptedStates[s.id] === false) cls += ' opacity-40';
+            return '<span class="' + cls + '" onclick="jumpToSuggestion(' + i + ')" title="' + (s.tag||'') + '"></span>';
+        }).join('');
+        document.getElementById('progressLabel').textContent = (currentIndex + 1) + '/' + allSuggestions.length;
+        document.getElementById('prevBtn').disabled = currentIndex <= 0;
+        document.getElementById('nextBtn').disabled = currentIndex >= allSuggestions.length - 1;
+    }
+
+    function updateCurrentDetail() {
+        const c = document.getElementById('currentDetail');
+        if (currentIndex < 0 || currentIndex >= allSuggestions.length) {
+            c.innerHTML = '<div class="text-center py-12 text-gray-400"><span class="iconify text-4xl" data-icon="solar:file-search-bold-duotone"></span><p class="text-sm mt-2">点击上方建议查看详情</p></div>';
+            return;
+        }
+        const s = allSuggestions[currentIndex];
+        const isAccepted = acceptedStates[s.id] !== false;
+        const currentText = manualOverrides[s.id] || s.rewritten || '';
+        c.innerHTML = '<div class="text-xs font-bold text-gray-500 mb-3">改写详情 · ' + (currentIndex+1) + '/' + allSuggestions.length + '</div>' +
+'<div class="space-y-3">' +
+'<div><p class="text-xs font-bold text-red-500 mb-1">原文</p><div class="text-sm text-gray-600 bg-red-50 rounded-lg p-2" style="font-family:SimSun,serif;white-space:pre-wrap;word-break:break-all">' + escapeHtml(s.original || '') + '</div></div>' +
+'<div><p class="text-xs font-bold text-yellow-600 mb-1">改写后 <span class="text-gray-400 font-normal">(双击预览中对应高亮即可编辑)</span></p><div class="text-sm font-semibold text-gray-900 bg-yellow-50 rounded-lg p-2" style="font-family:SimSun,serif;white-space:pre-wrap;word-break:break-all">' + escapeHtml(currentText) + '</div></div>' +
+'<div><p class="text-xs font-bold text-gray-500 mb-1">优化理由</p><div class="text-xs text-gray-600 bg-gray-50 rounded-lg p-2">' + escapeHtml(s.reason || '') + '</div></div>' +
+'<div class="flex gap-2 pt-1">' +
+'<button onclick="jumpToSuggestion(' + currentIndex + '); scrollToHighlight(\'' + s.id + '\')" class="flex-1 py-2 border border-blue-200 text-blue-600 rounded-xl text-xs font-medium hover:bg-blue-50 flex items-center justify-center gap-1"><span class="iconify text-sm" data-icon="solar:arrow-to-bottom-right-bold-duotone"></span> 定位原文</button>' +
+'<button onclick="toggleAccept(\'' + s.id + '\')" class="flex-1 py-2 ' + (isAccepted ? 'bg-emerald-500 text-white' : 'ai-gradient text-white') + ' rounded-xl text-xs font-bold">' +
+(isAccepted ? '已采纳 ✓' : '采纳改写') + '</button></div>' +
+'</div>';
+    }
+
+    function jumpToSuggestion(idx) {
+        currentIndex = Math.max(0, Math.min(idx === -1 ? allSuggestions.length - 1 : idx, allSuggestions.length - 1));
+        highlightCurrent();
+        refresh();
+        if (allSuggestions[currentIndex]) scrollToHighlight(allSuggestions[currentIndex].id);
+    }
+
+    function prevSuggestion() {
+        if (currentIndex > 0) { currentIndex--; highlightCurrent(); refresh(); scrollToHighlight(allSuggestions[currentIndex].id); }
+    }
+
+    function nextSuggestion() {
+        if (currentIndex < allSuggestions.length - 1) { currentIndex++; highlightCurrent(); refresh(); scrollToHighlight(allSuggestions[currentIndex].id); }
+    }
+
+    async function exportDocx() {
+        const accepted = allSuggestions.filter(s => acceptedStates[s.id] !== false);
+        if (!accepted.length) { alert('请先采纳至少一条改写'); return; }
+        const btn = document.querySelector('[onclick="exportDocx()"]');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner" style="width:16px;height:16px;border-width:2px;display:inline-block"></span> 导出中...';
+        try {
+            const filename = data.filePath ? data.filePath.split('/').pop() : null;
+            const exportSuggestions = accepted.map(s => ({
+                original: s.original,
+                rewritten: manualOverrides[s.id] || s.rewritten || s.original
+            }));
+            const res = await authFetch('/api/export/docx', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ originalFilename: filename, suggestions: exportSuggestions })
+            });
+            if (!res.ok) throw new Error((await res.json()).error || '导出失败');
+            const blob = await res.blob();
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = (filename || '简历').replace(/\.[^.]+$/, '') + '_优化版.docx';
+            a.click();
+            btn.innerHTML = '<span class="iconify text-lg" data-icon="solar:check-circle-bold-duotone"></span> 已导出!';
+            setTimeout(() => { btn.disabled = false; btn.innerHTML = '<span class="iconify text-lg" data-icon="solar:download-bold-duotone"></span> 导出 Word'; }, 3000);
+        } catch (e) {
+            alert('导出失败: ' + e.message);
+            btn.disabled = false;
+            btn.innerHTML = '<span class="iconify text-lg" data-icon="solar:download-bold-duotone"></span> 导出 Word';
+        }
+    }
+
+    function exportPdf() {
+        const docxContainer = document.getElementById('docxContainer');
+        const textContainer = document.getElementById('textContainer');
+        const pdfContainer = document.getElementById('pdfContainer');
+
+        let sourceEl = null;
+        if (docxContainer && docxContainer.style.display !== 'none' && docxContainer.children.length) {
+            sourceEl = docxContainer;
+        } else if (textContainer && textContainer.style.display !== 'none' && textContainer.children.length) {
+            sourceEl = textContainer;
+        } else if (pdfContainer && pdfContainer.style.display !== 'none' && pdfContainer.children.length) {
+            sourceEl = pdfContainer;
+        }
+
+        if (!sourceEl || !sourceEl.children.length) {
+            alert('没有可导出的简历内容');
+            return;
+        }
+
+        const opt = {
+            margin: 0,
+            filename: '优化后的简历.pdf',
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: {
+                scale: 2,
+                useCORS: true,
+                logging: false,
+                onclone: function(clonedDoc) {
+                    const clonedEl = clonedDoc.body.firstElementChild;
+                    if (!clonedEl) return;
+                    clonedEl.querySelectorAll('[contenteditable]').forEach(el => el.removeAttribute('contenteditable'));
+                    clonedEl.querySelectorAll('.ai-highlight').forEach(el => {
+                        el.replaceWith(document.createTextNode(el.textContent));
+                    });
+                    clonedEl.querySelectorAll('[data-sid], .flash').forEach(el => el.remove());
+                    const style = clonedDoc.createElement('style');
+                    style.textContent = [
+                        '*{font-family:SimSun,"宋体",serif!important}',
+                        '*{font-size:12pt!important}',
+                        '*{line-height:1.8!important}',
+                        '*{color:#000!important}',
+                        '*{box-shadow:none!important}',
+                        '*{text-shadow:none!important}',
+                        '*{background:white!important}',
+                        '*{border-radius:0!important}',
+                        '*{padding:0!important}',
+                        'body{padding:40px 50px!important;box-sizing:border-box!important}',
+                        'p{margin:4px 0!important}',
+                        'table{border-collapse:collapse;width:100%}',
+                        'td{padding:2px 6px;border:1px solid #ddd}',
+                        'img{max-width:100%;height:auto}',
+                        '.docx-preview-wrapper{width:100%!important;max-width:none!important}',
+                        '.docx-file{width:100%!important;padding:0!important}'
+                    ].join('\n');
+                    clonedDoc.head.appendChild(style);
+                }
+            },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+
+        html2pdf().set(opt).from(sourceEl).save().catch(e => {
+            alert('PDF 导出失败: ' + e.message);
+        });
+    }
+
+    async function saveOptimized() {
+        const btn = document.getElementById('saveBtn');
+        btn.disabled = true;
+        const finalText = document.getElementById('docxContainer').innerText || document.getElementById('textContainer').innerText || data.textContent || '';
+        const accepted = allSuggestions.filter(s => acceptedStates[s.id] !== false);
+        const savedSuggestions = accepted.map(s => ({
+            ...s,
+            rewritten: manualOverrides[s.id] || s.rewritten
+        }));
+        try {
+            const resumeId = data.resumeId;
+            if (resumeId) {
+                const existing = await authFetch('/api/resumes/' + resumeId).then(r => { if (!r.ok) throw new Error('GET resume failed: ' + r.status); return r.json(); }).catch(() => null);
+                console.log('Existing resume:', existing, 'resumeId:', resumeId);
+                const nextVersion = existing && existing.versions ? existing.versions.length + 1 : 1;
+                const newVersion = {
+                    version: nextVersion,
+                    date: new Date().toISOString(),
+                    changes: 'AI 优化（采纳 ' + accepted.length + ' 项）',
+                    suggestions: savedSuggestions
+                };
+                const versions = existing && existing.versions ? [...existing.versions, newVersion] : [newVersion];
+                const putRes = await authFetch('/api/resumes/' + resumeId, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ versions, content: finalText, updatedAt: new Date().toISOString() })
+                });
+                console.log('PUT response status:', putRes.status);
+                if (!putRes.ok) throw new Error('PUT failed: ' + putRes.status);
+            } else {
+                const postRes = await authFetch('/api/resumes', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: (data.name || '简历') + ' (优化版)',
+                        type: data.type,
+                        content: finalText,
+                        filePath: null,
+                        isPrimary: false,
+                        versions: [{ version: 1, date: new Date().toISOString(), changes: 'AI 优化（采纳 ' + accepted.length + ' 项）', suggestions: savedSuggestions }]
+                    })
+                });
+                console.log('POST response status:', postRes.status);
+                if (!postRes.ok) throw new Error('POST failed: ' + postRes.status);
+                const saved = await postRes.json();
+                console.log('Saved resume:', saved);
+            }
+            btn.innerHTML = '<span class="iconify text-base text-emerald-500" data-icon="solar:check-circle-bold-duotone"></span> 已保存!';
+            setTimeout(() => { btn.disabled = false; btn.innerHTML = '<span class="iconify text-base text-emerald-500" data-icon="solar:save-bold-duotone"></span> 保存到简历库'; }, 3000);
+        } catch (e) {
+            console.error('Save failed:', e);
+            btn.disabled = false;
+            alert('保存失败: ' + e.message);
+        }
+    }
+
+    document.addEventListener('keydown', e => {
+        if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); prevSuggestion(); }
+        if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); nextSuggestion(); }
+    });
+
+    window.prevSuggestion = prevSuggestion;
+    window.nextSuggestion = nextSuggestion;
+    window.jumpToSuggestion = jumpToSuggestion;
+    window.toggleAccept = toggleAccept;
+    window.toggleAcceptAll = toggleAcceptAll;
+    window.exportDocx = exportDocx;
+    window.exportPdf = exportPdf;
+    window.saveOptimized = saveOptimized;
+    window.scrollToHighlight = scrollToHighlight;
+    window.highlightCurrent = highlightCurrent;
+
+    function authFetch(url, options = {}) {
+        const token = localStorage.getItem('jobpilot_token');
+        if (token) {
+            options.headers = { ...options.headers, 'Authorization': 'Bearer ' + token };
+        }
+        return fetch(url, options);
+    }
+
+    async function logout() {
+        await authFetch('/api/auth/logout', { method: 'POST' });
+        localStorage.removeItem('jobpilot_token');
+        localStorage.removeItem('jobpilot_user');
+        window.location.href = 'login.html';
+    }
+
+    refresh();
+    initPreview();
+}
+
+loadApp();
+</script>
+</body>
+</html>
